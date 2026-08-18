@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Card, Metric, Pill, SectionTitle } from '../components/UI.jsx';
-import { alerts, markAllMailRead, markMailRead, networkReachHouseholds } from '../game/simulation.js';
+import { alerts, breakNegotiation, markAllMailRead, markMailRead, networkReachHouseholds, signNegotiation } from '../game/simulation.js';
 import { fmtDate, money, num } from '../game/utils.js';
 
 export default function Dashboard({state,setState,onNavigate}){
@@ -24,7 +24,7 @@ export default function Dashboard({state,setState,onNavigate}){
         <div className="inbox-toolbar"><div><b>Inbox</b><span>{mails.length} messages</span></div><button disabled={!unread} onClick={()=>setState(markAllMailRead(state))}>Mark all read</button></div>
         <div className="mail-list">{mails.map(m=><button key={m.id} className={`mail-row ${!m.read?'unread':''} ${mail?.id===m.id?'active':''}`} onClick={()=>open(m.id)}><i className={`mail-type ${m.category||'info'}`}/><div><b>{m.from}</b><strong>{m.subject}</strong><span>{m.body.split('\n')[0]}</span></div><time>{m.date.slice(5)}</time></button>)}</div>
       </Card>
-      <Card className="mail-reader">{mail?<><div className="mail-reader-head"><span className="eyebrow">{mail.category||'MESSAGE'} · {mail.date}</span><h2>{mail.subject}</h2><p>From: <b>{mail.from}</b></p></div><div className="mail-body">{mail.body.split('\n').map((line,i)=><p key={i}>{line||' '}</p>)}</div><div className="mail-actions">{mail.developmentId&&<button className="primary" onClick={()=>onNavigate('studio')}>Open Studio</button>}{mail.programId&&<button className="primary" onClick={()=>onNavigate('studio')}>Open Program</button>}{mail.searchId&&<button className="primary" onClick={()=>onNavigate('organization')}>Open Hiring</button>}</div></>:<div className="empty">No messages yet.</div>}</Card>
+      <Card className="mail-reader">{mail?<><div className="mail-reader-head"><span className="eyebrow">{mail.category||'MESSAGE'} · {mail.date}</span><h2>{mail.subject}</h2><p>From: <b>{mail.from}</b></p></div><div className="mail-body">{mail.body.split('\n').map((line,i)=><p key={i}>{line||' '}</p>)}</div><div className="mail-actions">{mail.developmentId&&<button className="primary" onClick={()=>onNavigate('studio')}>Open Studio</button>}{mail.programId&&<button className="primary" onClick={()=>onNavigate('studio')}>Open Program</button>}{mail.searchId&&<button className="primary" onClick={()=>onNavigate('organization')}>Open Hiring</button>}{mail.negotiationId&&state.negotiations.find(n=>n.id===mail.negotiationId)?.status==='Agreed'&&<><button className="primary big" onClick={()=>setState(signNegotiation(state,mail.negotiationId))}>Sign Person</button><button className="danger-btn big" onClick={()=>setState(breakNegotiation(state,mail.negotiationId))}>Break Negotiations</button></>}{mail.negotiationId&&state.negotiations.find(n=>n.id===mail.negotiationId)?.status==='Signed'&&<span className="mail-action-status">✓ Contract signed</span>}{mail.negotiationId&&state.negotiations.find(n=>n.id===mail.negotiationId)?.status==='Broken'&&<span className="mail-action-status">Negotiations ended</span>}</div></>:<div className="empty">No messages yet.</div>}</Card>
     </div>
 
     <div className="dashboard-grid">

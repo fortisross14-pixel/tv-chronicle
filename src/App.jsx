@@ -10,9 +10,9 @@ import { seedState } from './game/seed.js';
 import { advanceDays } from './game/simulation.js';
 import { fmtDate, money } from './game/utils.js';
 
-const SAVE_PREFIX='tvEmpireSim_v03_slot_';
+const SAVE_PREFIX='tvEmpireSim_v04_slot_';
 const slotKey=n=>`${SAVE_PREFIX}${n}`;
-function readFrom(storage,n){try{const raw=storage?.getItem(slotKey(n));if(raw){const s=JSON.parse(raw);if(s?.version==='0.3.0')return s}}catch{}return null;}
+function readFrom(storage,n){try{const raw=storage?.getItem(slotKey(n));if(raw){const s=JSON.parse(raw);if(s?.version==='0.4.0')return s}}catch{}return null;}
 function readSlot(n){
   try{const s=readFrom(window.localStorage,n);if(s)return s}catch{}
   try{const s=readFrom(window.sessionStorage,n);if(s)return s}catch{}
