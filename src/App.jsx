@@ -12,7 +12,22 @@ import { fmtDate, money } from './game/utils.js';
 
 const SAVE_PREFIX='tvEmpireSim_v03_slot_';
 const slotKey=n=>`${SAVE_PREFIX}${n}`;
-function readSlot(n){try{const raw=localStorage.getItem(slotKey(n));if(raw){const s=JSON.parse(raw);if(s?.version==='0.3.0')return s}}catch{}return null;}
+function readFrom(storage,n){try{const raw=storage?.getItem(slotKey(n));if(raw){const s=JSON.parse(raw);if(s?.version==='0.3.0')return s}}catch{}return null;}
+function readSlot(n){
+  try{const s=readFrom(window.localStorage,n);if(s)return s}catch{}
+  try{const s=readFrom(window.sessionStorage,n);if(s)return s}catch{}
+  return null;
+}
+function persistSlot(n,state){
+  const raw=JSON.stringify(state);
+  try{window.localStorage.setItem(slotKey(n),raw);return {ok:true,persistent:true}}catch(localError){
+    try{window.sessionStorage.setItem(slotKey(n),raw);return {ok:true,persistent:false,error:localError}}catch(sessionError){
+      console.warn('TV Empire save storage unavailable',localError,sessionError);
+      return {ok:false,persistent:false,error:sessionError||localError};
+    }
+  }
+}
+function removeSlot(n){try{window.localStorage.removeItem(slotKey(n))}catch{}try{window.sessionStorage.removeItem(slotKey(n))}catch{}}
 function slotSummaries(){return [1,2,3].map(n=>({n,state:readSlot(n)}));}
 
 export default function App(){
@@ -21,15 +36,29 @@ export default function App(){
   const [page,setPage]=useState('dashboard');
   const [busy,setBusy]=useState(false);
   const [toast,setToast]=useState('');
+  const [storageWarning,setStorageWarning]=useState('');
   const [slots,setSlots]=useState(slotSummaries);
 
   const setState=next=>setStateRaw(typeof next==='function'?next(state):next);
-  useEffect(()=>{if(activeSlot&&state){try{localStorage.setItem(slotKey(activeSlot),JSON.stringify(state));setSlots(slotSummaries())}catch{}}},[state,activeSlot]);
+  useEffect(()=>{if(activeSlot&&state){const saved=persistSlot(activeSlot,state);if(saved.ok){setSlots(slotSummaries());if(!saved.persistent)setStorageWarning('Temporary session save only — this browser is blocking persistent storage.')}else setStorageWarning('Autosave is unavailable in this browser. The current game will keep running, but leaving the page may lose progress.')}},[state,activeSlot]);
   useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(''),2400);return()=>clearTimeout(t)},[toast]);
 
   const openSlot=n=>{const s=readSlot(n);if(s){setActiveSlot(n);setStateRaw(s);setPage('dashboard')}};
-  const createSlot=(n,form)=>{const s=seedState(form);localStorage.setItem(slotKey(n),JSON.stringify(s));setSlots(slotSummaries());setActiveSlot(n);setStateRaw(s);setPage('dashboard')};
-  const deleteSlot=n=>{if(confirm(`Delete save slot ${n}?`)){localStorage.removeItem(slotKey(n));setSlots(slotSummaries())}};
+  const createSlot=(n,form)=>{
+    try{
+      const s=seedState(form);
+      // Enter the career first. Mobile privacy/storage restrictions must never block Launch Network.
+      setActiveSlot(n);setStateRaw(s);setPage('dashboard');
+      const saved=persistSlot(n,s);
+      if(saved.ok){setSlots(slotSummaries());if(!saved.persistent){setStorageWarning('Temporary session save only — this browser is blocking persistent storage.');setToast('Network launched — temporary save mode')}}
+      else{setStorageWarning('Autosave is unavailable in this browser. The current game will keep running, but leaving the page may lose progress.');setToast('Network launched — autosave unavailable')}
+      return {ok:true,persistent:saved.persistent};
+    }catch(error){
+      console.error('Unable to launch network',error);
+      return {ok:false,error:'The network could not be created. Please try again; no save data was changed.'};
+    }
+  };
+  const deleteSlot=n=>{if(confirm(`Delete save slot ${n}?`)){removeSlot(n);setSlots(slotSummaries())}};
   const backToSlots=()=>{setActiveSlot(null);setStateRaw(null);setPage('dashboard');setSlots(slotSummaries())};
 
   if(!activeSlot||!state)return <SaveLobby slots={slots} onOpen={openSlot} onCreate={createSlot} onDelete={deleteSlot}/>;
@@ -58,6 +87,7 @@ export default function App(){
     </div>
 
     <nav className="bottom-nav">{NAV.filter(([id])=>id!=='qa').map(([id,label,icon])=><button key={id} className={page===id?'active':''} onClick={()=>setPage(id)}><i>{icon}</i><span>{label}</span>{id==='dashboard'&&state.emails?.some(m=>!m.read)&&<em className="nav-badge">{Math.min(99,state.emails.filter(m=>!m.read).length)}</em>}</button>)}<button className={page==='qa'?'active':''} onClick={()=>setPage('qa')}><i>⚙</i><span>QA</span></button></nav>
+    {storageWarning&&<div className="storage-warning" role="status">{storageWarning}</div>}
     {busy&&<div className="sim-overlay"><div className="spinner"/><b>Advancing the network…</b></div>}
     {toast&&<div className="toast">{toast}</div>}
   </div>;
@@ -69,6 +99,15 @@ function SaveLobby({slots,onOpen,onCreate,onDelete}){
 }
 
 function NetworkSetup({slot,onClose,onCreate}){
-  const [f,setF]=useState({name:'Prebost Community Network',initials:'PCN',icon:'🐦',shape:'circle',primary:'#f1c232',secondary:'#c8222f',focus:'Scripted',home:'VA'});const set=(k,v)=>setF(x=>({...x,[k]:v}));
-  return <div className="modal-backdrop"><div className="setup-modal"><button className="drawer-close" onClick={onClose}>×</button><span className="eyebrow">NEW CAREER · SLOT {slot}</span><h1>Create your network</h1><p>You receive $20M, a basic local transmitter/control room and no staff or programming. Choose one format in which the founders have two stars of starting expertise.</p><div className="setup-grid"><div className="form-grid"><label className="full">Network name<input value={f.name} onChange={e=>set('name',e.target.value)}/></label><label>Initials<input maxLength="5" value={f.initials} onChange={e=>set('initials',e.target.value.toUpperCase())}/></label><label>Home state<select value={f.home} onChange={e=>set('home',e.target.value)}>{STATE_LAYOUT.map(([code])=><option key={code}>{code}</option>)}</select></label><label>Logo icon<select value={f.icon} onChange={e=>set('icon',e.target.value)}>{['★','●','◆','▲','✦','☀','⚡','♣','♥','⬟','◉','🐦','📺'].map(x=><option key={x}>{x}</option>)}</select></label><label>Logo shape<select value={f.shape} onChange={e=>set('shape',e.target.value)}><option value="circle">Circle</option><option value="square">Square</option><option value="diamond">Diamond</option><option value="shield">Shield</option></select></label><label>Shape color<input type="color" value={f.primary} onChange={e=>set('primary',e.target.value)}/></label><label>Icon color<input type="color" value={f.secondary} onChange={e=>set('secondary',e.target.value)}/></label><label className="full">Starting expertise<select value={f.focus} onChange={e=>set('focus',e.target.value)}>{FORMAT_EXPERTISE.map(x=><option key={x}>{x}</option>)}</select><small>{f.focus}: 4/10 · ★★☆☆☆. All other formats begin at 0/10.</small></label></div><div className="network-create-preview"><div className={`brand-seal-large shape-${f.shape}`} style={{'--primary':f.primary,'--secondary':f.secondary}}><i>{f.icon}</i><b>{f.initials}</b><span>{f.name}</span></div><div className="start-conditions"><b>Opening conditions</b><span>$20.0M cash</span><span>Local emission rights: {f.home}</span><span>0 programs</span><span>0 employees</span><span>0 soundstages</span><span>Empty schedule</span></div></div></div><button className="primary big full" disabled={!f.name.trim()||!f.initials.trim()} onClick={()=>onCreate(f)}>Launch Network</button></div></div>
+  const [f,setF]=useState({name:'Prebost Community Network',initials:'PCN',icon:'🐦',shape:'circle',primary:'#f1c232',secondary:'#c8222f',focus:'Scripted',home:'VA'});
+  const [launchError,setLaunchError]=useState('');
+  const [launching,setLaunching]=useState(false);
+  const set=(k,v)=>setF(x=>({...x,[k]:v}));
+  const launch=()=>{
+    if(launching||!f.name.trim()||!f.initials.trim())return;
+    setLaunchError('');setLaunching(true);
+    try{const result=onCreate(f);if(!result?.ok){setLaunching(false);setLaunchError(result?.error||'Unable to launch this network. Please try again.')}}
+    catch(error){console.error('Launch Network failed',error);setLaunching(false);setLaunchError('Unable to launch this network. Please try again.')}
+  };
+  return <div className="modal-backdrop"><div className="setup-modal"><button type="button" className="drawer-close" onClick={onClose} aria-label="Close network setup">×</button><span className="eyebrow">NEW CAREER · SLOT {slot}</span><h1>Create your network</h1><p>You receive $20M, a basic local transmitter/control room and no staff or programming. Choose one format in which the founders have two stars of starting expertise.</p><div className="setup-grid"><div className="form-grid"><label className="full">Network name<input value={f.name} onChange={e=>set('name',e.target.value)}/></label><label>Initials<input maxLength="5" value={f.initials} onChange={e=>set('initials',e.target.value.toUpperCase())}/></label><label>Home state<select value={f.home} onChange={e=>set('home',e.target.value)}>{STATE_LAYOUT.map(([code])=><option key={code}>{code}</option>)}</select></label><label>Logo icon<select value={f.icon} onChange={e=>set('icon',e.target.value)}>{['★','●','◆','▲','✦','☀','⚡','♣','♥','⬟','◉','🐦','📺'].map(x=><option key={x}>{x}</option>)}</select></label><label>Logo shape<select value={f.shape} onChange={e=>set('shape',e.target.value)}><option value="circle">Circle</option><option value="square">Square</option><option value="diamond">Diamond</option><option value="shield">Shield</option></select></label><label>Shape color<input type="color" value={f.primary} onChange={e=>set('primary',e.target.value)}/></label><label>Icon color<input type="color" value={f.secondary} onChange={e=>set('secondary',e.target.value)}/></label><label className="full">Starting expertise<select value={f.focus} onChange={e=>set('focus',e.target.value)}>{FORMAT_EXPERTISE.map(x=><option key={x}>{x}</option>)}</select><small>{f.focus}: 4/10 · ★★☆☆☆. All other formats begin at 0/10.</small></label></div><div className="network-create-preview"><div className={`brand-seal-large shape-${f.shape}`} style={{'--primary':f.primary,'--secondary':f.secondary}}><i>{f.icon}</i><b>{f.initials}</b><span>{f.name}</span></div><div className="start-conditions"><b>Opening conditions</b><span>$20.0M cash</span><span>Local emission rights: {f.home}</span><span>0 programs</span><span>0 employees</span><span>0 soundstages</span><span>Empty schedule</span></div></div></div>{launchError&&<div className="launch-error" role="alert"><b>Launch failed</b><span>{launchError}</span></div>}<button type="button" className="primary big full launch-network-btn" disabled={launching||!f.name.trim()||!f.initials.trim()} onClick={launch}>{launching?'Launching…':'Launch Network'}</button></div></div>
 }

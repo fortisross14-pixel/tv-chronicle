@@ -13,5 +13,8 @@ check('Safe-area support configured',css.includes('safe-area-inset-bottom'));
 check('Mobile inbox styles configured',css.includes('.inbox-layout')&&css.includes('.mail-reader'));
 check('Outlook-style calendar configured',css.includes('.outlook-schedule')&&channel.includes('BROADCAST_SLOTS'));
 check('Three save slots configured',app.includes('[1,2,3]')&&app.includes('SAVE_PREFIX'));
+check('Mobile launch is storage-fault tolerant',app.includes('Enter the career first')&&app.includes('persistSlot(n,s)')&&app.indexOf('setActiveSlot(n)')<app.indexOf('const saved=persistSlot(n,s)'));
+check('Launch failures are visible',app.includes('launch-error')&&app.includes('role=\"alert\"')&&app.includes('Launching…'));
+check('Touch buttons use manipulation behavior',css.includes('touch-action:manipulation'));
 check('GitHub Pages workflow present',workflow.includes('actions/deploy-pages@v4')&&workflow.includes('npm run build'));
 console.log(`TV Empire v0.3 QA: ${r.passed}/${r.total} checks passed.`);console.log(`Idle 180d cash: $${Math.round(r.cash).toLocaleString()} | Scenario programs: ${r.programs}`);for(const c of r.checks)console.log(`${c.ok?'PASS':'FAIL'}  ${c.name}${c.detail?` — ${c.detail}`:''}`);const repoPass=repoChecks.filter(x=>x.ok).length;console.log(`\nRepository/mobile QA: ${repoPass}/${repoChecks.length} checks passed.`);for(const c of repoChecks)console.log(`${c.ok?'PASS':'FAIL'}  ${c.name}`);if(r.passed!==r.total||repoPass!==repoChecks.length)process.exit(1);
