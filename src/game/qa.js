@@ -118,3 +118,20 @@ export function runScenarioQA(){
   let lib=seedState({home:'VA'}),pack=lib.contentMarket[0];lib=licenseContent(lib,pack.id,'four',pack.movies[0].id);check('Four-movie cycle licenses four titles',lib.programs.length===4,String(lib.programs.length));
   return {state:s,results:out};
 }
+
+
+export function runBalanceQA(days=180){
+  const idle=advanceDays(seedState({name:'Balance Test Network',initials:'BTN',home:'VA',focus:'Scripted'}),days);
+  const scenario=runScenarioQA();
+  const checks=[...runStateQA(scenario.state),...scenario.results];
+  return {
+    days,
+    date:idle.date,
+    cash:idle.cash,
+    reach:networkReachHouseholds(idle),
+    programs:scenario.state.programs.length,
+    passed:checks.filter(x=>x.ok).length,
+    total:checks.length,
+    checks
+  };
+}
