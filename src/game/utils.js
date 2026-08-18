@@ -1,0 +1,14 @@
+export const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+export const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
+export const deepClone=x=>JSON.parse(JSON.stringify(x));
+export const uid=p=>`${p}_${Math.random().toString(36).slice(2,10)}`;
+export const dateObj=s=>new Date(`${s}T12:00:00`);
+export const iso=d=>d.toISOString().slice(0,10);
+export const addDays=(s,n)=>{const d=dateObj(s);d.setDate(d.getDate()+n);return iso(d)};
+export const dayIndex=s=>(dateObj(s).getDay()+6)%7;
+export const fmtDate=s=>dateObj(s).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+export const money=n=>{const sign=n<0?'-':'';n=Math.abs(n||0);if(n>=1e9)return `${sign}$${(n/1e9).toFixed(2)}B`;if(n>=1e6)return `${sign}$${(n/1e6).toFixed(1)}M`;if(n>=1e3)return `${sign}$${(n/1e3).toFixed(0)}K`;return `${sign}$${Math.round(n)}`};
+export const num=n=>n>=1e6?`${(n/1e6).toFixed(2)}m`:n>=1e3?`${Math.round(n/1e3)}k`:`${Math.round(n||0)}`;
+export const pct=n=>`${Math.round(n||0)}%`;
+export const seeded=s=>{let h=2166136261;for(let i=0;i<s.length;i++)h=Math.imul(h^s.charCodeAt(i),16777619);return()=>((h=Math.imul(h^(h>>>13),1274126177))>>>0)/4294967296};
+export const affinity=(o={})=>({boys:35,girls:35,youngMen:45,youngWomen:45,adultMen:50,adultWomen:50,seniorMen:35,seniorWomen:35,...o});

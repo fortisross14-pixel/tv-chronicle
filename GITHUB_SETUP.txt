@@ -1,0 +1,24 @@
+TV EMPIRE SIMULATOR — GITHUB / VITE
+
+Local development
+1. Install Node.js 22.
+2. Run: npm install
+3. Run: npm run dev
+
+Quality checks
+- npm run qa
+- npm run build
+
+GitHub
+1. Create an empty GitHub repository.
+2. From this folder:
+   git init
+   git add .
+   git commit -m "TV Empire Simulator v0.2"
+   git branch -M main
+   git remote add origin <YOUR_REPOSITORY_URL>
+   git push -u origin main
+3. In GitHub repository Settings > Pages, set Source to GitHub Actions if needed.
+4. The included .github/workflows/deploy.yml runs QA, builds the Vite app, and deploys dist/ to GitHub Pages on every push to main.
+
+The Vite base is relative, so the Pages deployment does not depend on the repository name.

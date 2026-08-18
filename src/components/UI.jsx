@@ -1,0 +1,46 @@
+import React from 'react';
+import { money, num, pct } from '../game/utils.js';
+import { getIP, programPnL } from '../game/simulation.js';
+
+export function Card({children,className='',onClick}){return <section className={`card ${className}`} onClick={onClick}>{children}</section>}
+export function SectionTitle({title,sub,actions}){return <div className="section-title"><div><h2>{title}</h2>{sub&&<p>{sub}</p>}</div>{actions&&<div className="section-actions">{actions}</div>}</div>}
+export function Metric({label,value,sub,tone=''}){return <div className={`metric ${tone}`}><span>{label}</span><strong>{value}</strong>{sub&&<small>{sub}</small>}</div>}
+export function Pill({children,tone=''}){return <span className={`pill ${tone}`}>{children}</span>}
+export function Progress({value,max=100,label}){const p=Math.max(0,Math.min(100,(Number(value||0)/Math.max(1,max))*100));return <div className="progress-wrap">{label&&<div className="progress-label"><span>{label}</span><b>{Math.round(value||0)}{max===100?'%':''}</b></div>}<div className="progress"><i style={{width:`${p}%`}} /></div></div>}
+export function Tabs({items,value,onChange}){return <div className="tabs" role="tablist">{items.map(([id,label])=><button key={id} className={value===id?'active':''} onClick={()=>onChange(id)}>{label}</button>)}</div>}
+export function Empty({children}){return <div className="empty">{children}</div>}
+export function Score({label,value,kind=''}){return <div className={`score ${kind}`}><span>{label}</span><b>{Math.round(value||0)}{label.includes('Critic')?'%':'/10'}</b></div>}
+
+export function ProgramPoster({p,compact=false}){
+  return <div className={`poster art-${p.art} font-${p.font} ${compact?'compact':''}`} style={{'--p1':p.p1,'--p2':p.p2}}>
+    <div className="poster-kicker">{p.format} · {p.genre}</div><div className="poster-title">{p.title}</div><div className="poster-season">S{p.season||1}</div>
+  </div>
+}
+
+export function ProgramCard({state,p,onOpen}){
+  const ip=getIP(state,p.ipId),runway=Math.max(0,Math.floor(p.pipeline.ready-p.pipeline.aired)),pnl=programPnL(state,p);
+  return <Card className="program-card" onClick={onOpen}>
+    <ProgramPoster p={p} compact />
+    <div className="program-card-body">
+      <div className="program-card-head"><div><h3>{p.title}</h3><span>{p.format} · {p.genre} · S{p.season} · {p.status}</span></div>{p.status==='Development'?<Pill tone="warn">{Math.round(p.developmentProgress||0)}% dev</Pill>:<Pill tone={runway<=1?'danger':runway<=3?'warn':'ok'}>{runway} ready</Pill>}</div>
+      <div className="score-row"><Score label="Viewer" value={(p.viewer||0)/10}/><Score label="Critics" value={p.critic||0}/></div>
+      <div className="mini-stats"><span>Popularity <b>{Math.round(ip?.popularity||0)}</b></span><span>Novelty <b>{Math.round(ip?.novelty||0)}</b></span><span>P&L <b className={pnl.contribution>=0?'positive':'negative'}>{money(pnl.contribution)}</b></span></div>
+    </div>
+  </Card>
+}
+
+export function Pipeline({p}){
+  const rows=[['Scripts',p.pipeline.scripted],['Pre',p.pipeline.pre],['Filmed',p.pipeline.filmed],['Ready',p.pipeline.ready],['Aired',p.pipeline.aired]];
+  return <div className="pipeline">{rows.map(([l,v])=><div key={l}><span>{l}</span><b>{Math.floor(v)} / {p.episodes}</b><div className="progress"><i style={{width:`${Math.min(100,(v/Math.max(1,p.episodes))*100)}%`}}/></div></div>)}</div>
+}
+
+export function StatBar({label,value}){return <div className="statbar"><span>{label}</span><div className="progress"><i style={{width:`${Math.max(0,Math.min(100,value||0))}%`}} /></div><b>{Math.round(value||0)}</b></div>}
+
+export function MoneyStat({label,value}){return <div className="money-stat"><span>{label}</span><b className={value>=0?'positive':'negative'}>{money(value)}</b></div>}
+export function AudienceStat({label,value}){return <div className="money-stat"><span>{label}</span><b>{num(value)}</b></div>}
+export function PercentStat({label,value}){return <div className="money-stat"><span>{label}</span><b>{pct(value)}</b></div>}
+
+export function Drawer({open,title,onClose,children,wide=false}){
+  if(!open)return null;
+  return <div className="drawer-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}><aside className={`drawer ${wide?'wide':''}`}><header><h2>{title}</h2><button className="icon-btn" onClick={onClose}>×</button></header><div className="drawer-body">{children}</div></aside></div>
+}
