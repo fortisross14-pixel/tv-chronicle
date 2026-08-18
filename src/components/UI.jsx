@@ -9,7 +9,7 @@ export function Pill({children,tone=''}){return <span className={`pill ${tone}`}
 export function Progress({value,max=100,label}){const p=Math.max(0,Math.min(100,(Number(value||0)/Math.max(1,max))*100));return <div className="progress-wrap">{label&&<div className="progress-label"><span>{label}</span><b>{Math.round(value||0)}{max===100?'%':''}</b></div>}<div className="progress"><i style={{width:`${p}%`}} /></div></div>}
 export function Tabs({items,value,onChange}){return <div className="tabs" role="tablist">{items.map(([id,label])=><button key={id} className={value===id?'active':''} onClick={()=>onChange(id)}>{label}</button>)}</div>}
 export function Empty({children}){return <div className="empty">{children}</div>}
-export function Score({label,value,kind=''}){return <div className={`score ${kind}`}><span>{label}</span><b>{Math.round(value||0)}{label.includes('Critic')?'%':'/10'}</b></div>}
+export function Score({label,value,kind=''}){const known=typeof value==='number'&&Number.isFinite(value);return <div className={`score ${kind}`}><span>{label}</span><b>{known?`${label.includes('Critic')?Math.round(value):Number(value).toFixed(1)}${label.includes('Critic')?'%':'/10'}`:'Unrated'}</b></div>}
 
 export function ProgramPoster({p,compact=false}){
   return <div className={`poster art-${p.art} font-${p.font} ${compact?'compact':''}`} style={{'--p1':p.p1,'--p2':p.p2}}>
@@ -22,8 +22,8 @@ export function ProgramCard({state,p,onOpen}){
   return <Card className="program-card" onClick={onOpen}>
     <ProgramPoster p={p} compact />
     <div className="program-card-body">
-      <div className="program-card-head"><div><h3>{p.title}</h3><span>{p.format} · {p.genre} · S{p.season} · {p.status}</span></div>{p.status==='Development'?<Pill tone="warn">{Math.round(p.developmentProgress||0)}% dev</Pill>:<Pill tone={runway<=1?'danger':runway<=3?'warn':'ok'}>{runway} ready</Pill>}</div>
-      <div className="score-row"><Score label="Viewer" value={(p.viewer||0)/10}/><Score label="Critics" value={p.critic||0}/></div>
+      <div className="program-card-head"><div><h3>{p.title}</h3><span>{p.format} · {p.genre} · S{p.season} · {p.status}</span></div><Pill tone={p.status==='Pre-production'?'warn':runway<=1?'danger':runway<=3?'warn':'ok'}>{p.status==='Pre-production'?'PRE':`${runway} ready`}</Pill></div>
+      <div className="score-row"><Score label="Viewer" value={p.premiered?(p.viewer||0)/10:null}/><Score label="Critics" value={p.premiered?p.critic:null}/></div>
       <div className="mini-stats"><span>Popularity <b>{Math.round(ip?.popularity||0)}</b></span><span>Novelty <b>{Math.round(ip?.novelty||0)}</b></span><span>P&L <b className={pnl.contribution>=0?'positive':'negative'}>{money(pnl.contribution)}</b></span></div>
     </div>
   </Card>

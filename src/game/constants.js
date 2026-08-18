@@ -5,12 +5,24 @@ export const DEMOS = [
 
 export const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
-export const DAYPARTS = [
-  ['morning','Morning','06:00'],['daytime','Daytime','09:00'],['fringe','Early Fringe','15:00'],['access','Prime Access','18:00'],
-  ['prime1','Prime 1','20:00'],['prime2','Prime 2','21:00'],['late','Late','22:00'],['overnight','Overnight','00:00']
+export const BROADCAST_SLOTS = [
+  '09:00','09:30','10:00','10:30','11:00','11:30',
+  '15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30',
+  '20:00','20:30','21:00','21:30','22:00','22:30','23:00','23:30'
 ];
 
-export const SLOT_MULT = {morning:.72,daytime:.58,fringe:.68,access:.86,prime1:1.18,prime2:1.12,late:.67,overnight:.25};
+export const DURATION_OPTIONS = [30,60,120];
+
+export function slotBand(time){
+  const h=Number(time.slice(0,2));
+  if(h>=20&&h<22)return 'prime';
+  if(h>=22)return 'late';
+  if(h>=18)return 'access';
+  if(h>=15)return 'fringe';
+  return 'morning';
+}
+
+export const SLOT_MULT = {morning:.62,fringe:.72,access:.88,prime:1.18,late:.72,overnight:.32};
 
 export const FORMATS = {
   Scripted: ['Drama','Comedy','Kids','Limited Series','Crime','Medical','Historical','Fantasy','Science Fiction','Romance'],
@@ -19,6 +31,8 @@ export const FORMATS = {
   Live: ['Awards','Concert','Special','Event'],
   Sports: ['Live Sports','Pregame','Postgame','Highlights','Analysis']
 };
+
+export const FORMAT_EXPERTISE = Object.keys(FORMATS);
 
 export const FORMAT_NEEDS = {
   Drama:{writing:1.25,cast:1.2,design:1.0,vfx:.55,music:.8,sound:.8,image:1.0},
@@ -36,6 +50,18 @@ export const FORMAT_NEEDS = {
   Documentary:{writing:1.0,cast:.45,design:.35,vfx:.25,music:.85,sound:.95,image:1.15},
   'Live Sports':{writing:.15,cast:1.0,design:.45,vfx:.25,music:.55,sound:1.3,image:1.25},
   default:{writing:1,cast:1,design:1,vfx:.6,music:.7,sound:.8,image:.9}
+};
+
+export const THEME_NOVELTY = {
+  Contemporary:0,Local:-8,Workplace:-4,Family:-5,Medical:-5,Crime:-4,Historical:7,Fantasy:13,Space:22,
+  'Remote Wilderness':10,'Extreme Environment':14,Celebrity:-2,'Social Experiment':12,'Near Future':16,
+  International:8,'Small Town':-2,Urban:1,Romance:-3,Politics:0,Food:-4,Travel:5,Sports:-3,Music:2
+};
+
+export const CONCEPT_ANGLES = {
+  Familiar:{novelty:-10,risk:-8,label:'Familiar'},
+  Fresh:{novelty:5,risk:0,label:'Fresh'},
+  Experimental:{novelty:18,risk:12,label:'Experimental'}
 };
 
 export const ART_STYLES = ['sun','grid','bars','ring','noise','split'];
@@ -62,5 +88,5 @@ export const STATE_HOUSEHOLDS = {
 };
 
 export const NAV = [
-  ['dashboard','Dashboard','◫'],['studio','Studio','◉'],['channel','Channel','▦'],['business','Business','◆'],['organization','Organization','⌂'],['qa','QA','⚙']
+  ['dashboard','Inbox','✉'],['studio','Studio','◉'],['channel','Channel','▦'],['business','Business','◆'],['organization','Organization','⌂'],['qa','QA','⚙']
 ];

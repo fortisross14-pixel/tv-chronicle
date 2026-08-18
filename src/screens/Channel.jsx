@@ -1,57 +1,38 @@
 import React, { useMemo, useState } from 'react';
 import { Card, Empty, Pill, ProgramPoster, SectionTitle, StatBar, Tabs } from '../components/UI.jsx';
-import { DAYS, DAYPARTS, DEMOS } from '../game/constants.js';
-import { calcAudience, getIP, networkReachHouseholds, setSchedule } from '../game/simulation.js';
-import { num, pct } from '../game/utils.js';
+import { BROADCAST_SLOTS, DAYS, DEMOS, FORMAT_EXPERTISE, slotBand } from '../game/constants.js';
+import { calcAudience, getIP, getProgram, isSchedulable, networkReachHouseholds, removeScheduleBlock, scheduleBlockEnd, scheduleProgram } from '../game/simulation.js';
+import { num } from '../game/utils.js';
+
+const mins=t=>{const [h,m]=t.split(':').map(Number);return h*60+m};
+const fitsBroadcastWindow=(start,duration)=>{const a=mins(start),e=a+Number(duration||30);return !(a<720&&e>720);};
 
 export default function Channel({state,setState}){
   const [tab,setTab]=useState('schedule');
-  return <div className="page-stack">
-    <div className="page-head"><div><span className="eyebrow">QUADRANT II</span><h1>Channel</h1><p>Program the network, cultivate audiences and shape what PCN means to viewers.</p></div></div>
-    <Tabs value={tab} onChange={setTab} items={[["schedule","Programming"],["audience","Audience"],["brand","Network Brand"],["awards","Awards"],["competition","Competition"]]}/>
-    {tab==='schedule'&&<Schedule state={state} setState={setState}/>} 
-    {tab==='audience'&&<Audience state={state}/>} 
-    {tab==='brand'&&<Brand state={state}/>} 
-    {tab==='awards'&&<Awards state={state}/>} 
-    {tab==='competition'&&<Competition state={state}/>} 
-  </div>
+  return <div className="page-stack"><div className="page-head"><div><span className="eyebrow">QUADRANT II</span><h1>Channel</h1><p>Programming is a calendar. Every title consumes actual broadcast time.</p></div></div><Tabs value={tab} onChange={setTab} items={[["schedule","Programming"],["audience","Audience"],["brand","Network & Expertise"],["awards","Awards"],["competition","Competition"]]}/>{tab==='schedule'&&<Schedule state={state} setState={setState}/>} {tab==='audience'&&<Audience state={state}/>} {tab==='brand'&&<Brand state={state}/>} {tab==='awards'&&<Awards state={state}/>} {tab==='competition'&&<Competition state={state}/>}</div>
 }
 
 function Schedule({state,setState}){
   const [day,setDay]=useState(DAYS[(new Date(`${state.date}T12:00:00`).getDay()+6)%7]);
-  const reach=networkReachHouseholds(state);
-  return <div className="schedule-layout">
-    <Card className="pad span-2"><SectionTitle title="Weekly Schedule" sub="Half-hour/detail granularity is abstracted into strategically distinct dayparts on this pass."/>
-      <div className="day-switch">{DAYS.map(d=><button key={d} className={day===d?'active':''} onClick={()=>setDay(d)}>{d}</button>)}</div>
-      <div className="schedule-list">{DAYPARTS.map(([slot,label,time])=>{
-        const pid=state.schedule[day]?.[slot],p=state.programs.find(x=>x.id===pid),preview=p?calcAudience(state,p,slot,state.date):null;
-        return <div className="schedule-row" key={slot}><div className="schedule-time"><b>{time}</b><span>{label}</span></div><div className="schedule-show">{p&&<ProgramPoster p={p} compact/>}<select value={pid||''} onChange={e=>setState(setSchedule(state,day,slot,e.target.value))}>{state.programs.map(x=><option value={x.id} key={x.id}>{x.title}</option>)}</select></div><div className="schedule-forecast"><b>{preview?num(preview.audience):'—'}</b><span>forecast</span></div></div>
-      })}</div>
-    </Card>
-    <Card className="pad"><SectionTitle title="Programming Logic" sub="Quality is only one input."/><div className="logic-list"><div><b>Reach</b><span>{num(reach)} households can receive PCN.</span></div><div><b>Lead-in & daypart</b><span>Prime windows offer more available viewers but face stronger competition.</span></div><div><b>Awareness</b><span>Marketing and network reputation create sampling.</span></div><div><b>IP attraction</b><span>Popularity and novelty pull different ways.</span></div><div><b>Ad load</b><span>More minutes sell more inventory but increase switching.</span></div></div></Card>
-  </div>
+  const eligible=state.programs.filter(isSchedulable),[selected,setSelected]=useState(eligible[0]?.id||'');
+  React.useEffect(()=>{if(selected&&!eligible.some(p=>p.id===selected))setSelected(eligible[0]?.id||'')},[state.programs.length,state.programs.map(p=>p.pipeline.ready-p.pipeline.aired).join('|')]);
+  const blocks=state.scheduleBlocks[day]||[],selectedP=getProgram(state,selected);
+  const covered=slot=>blocks.some(b=>{const p=getProgram(state,b.programId),a=mins(b.start),e=a+(p?.duration||b.duration||30),x=mins(slot);return x>=a&&x<e});
+  return <div className="schedule-layout outlook-layout"><Card className="pad span-2"><SectionTitle title="Broadcast Calendar" sub="9 AM–12 PM and 3 PM–12 AM. Select a program, then tap an open start time."/><div className="day-switch">{DAYS.map(d=><button key={d} className={day===d?'active':''} onClick={()=>setDay(d)}>{d}</button>)}</div>{eligible.length?<div className="schedule-program-picker"><span>Place:</span><select value={selected} onChange={e=>setSelected(e.target.value)}>{eligible.map(p=><option value={p.id} key={p.id}>{p.title} · {p.duration}m · {Math.max(0,Math.floor(p.pipeline.ready-p.pipeline.aired))} ready</option>)}</select>{selectedP&&<Pill>{selectedP.duration===30?'½ hour':selectedP.duration===60?'1 hour':selectedP.duration===120?'2 hours':`${selectedP.duration/60} hours`}</Pill>}</div>:<div className="warning-box">Nothing is schedulable yet. Buy a movie/library package or deliver an original episode first.</div>}
+      <div className="outlook-schedule" style={{'--rows':BROADCAST_SLOTS.length}}>
+        {BROADCAST_SLOTS.map((t,i)=><div className={`time-label ${t==='15:00'?'afternoon-start':''} ${t==='20:00'?'prime-start':''}`} style={{gridRow:i+1,gridColumn:1}} key={`time-${t}`}><b>{formatTime(t)}</b>{t==='20:00'&&<span>PRIME</span>}</div>)}
+        {BROADCAST_SLOTS.map((t,i)=>{const valid=selectedP?fitsBroadcastWindow(t,selectedP.duration):true;return !covered(t)?<button className={`empty-calendar-cell ${!valid?'invalid':''} ${t==='15:00'?'afternoon-start':''} ${t==='20:00'?'prime-start':''}`} style={{gridRow:i+1,gridColumn:2}} key={`empty-${t}`} disabled={!selectedP||!valid} onClick={()=>setState(scheduleProgram(state,day,t,selected))}><span>{valid?'＋':'—'}</span><small>{selectedP?(valid?`Start ${selectedP.title}`:'Would cross 12–3 blackout'):'Open'}</small></button>:null})}
+        {blocks.map(b=>{const p=getProgram(state,b.programId);if(!p)return null;const row=BROADCAST_SLOTS.indexOf(b.start);if(row<0)return null;const nominal=Math.ceil(p.duration/30),visible=Math.max(1,Math.min(nominal,BROADCAST_SLOTS.length-row));const preview=calcAudience(state,p,b.start,state.date);return <div className={`calendar-block band-${slotBand(b.start)}`} style={{gridRow:`${row+1} / span ${visible}`,gridColumn:2}} key={b.id}><ProgramPoster p={p} compact/><div><span>{formatTime(b.start)} → {scheduleBlockEnd(b,p)}</span><b>{p.title}</b><small>{p.duration}m · forecast {num(preview.audience)}</small>{nominal>visible&&<em>continues overnight</em>}</div><button title="Remove" onClick={()=>setState(removeScheduleBlock(state,day,b.id))}>×</button></div>})}
+      </div>
+    </Card><Card className="pad schedule-sidebar"><SectionTitle title="Available Programming" sub="Only delivered episodes/runs can be placed."/>{eligible.map(p=><button className={`schedule-library-card ${selected===p.id?'active':''}`} onClick={()=>setSelected(p.id)} key={p.id}><ProgramPoster p={p} compact/><span><b>{p.title}</b><small>{p.genre} · {p.duration}m</small><em>{Math.max(0,Math.floor(p.pipeline.ready-p.pipeline.aired))} ready</em></span></button>)}{!eligible.length&&<Empty>Your schedule is literally dead air. Business → Rights is the fastest way to buy something to broadcast.</Empty>}<div className="logic-list"><div><b>Morning</b><span>09:00–12:00</span></div><div><b>Afternoon / Access</b><span>15:00–20:00</span></div><div><b>Prime</b><span>20:00–22:00</span></div><div><b>Late</b><span>22:00 onward</span></div></div></Card></div>
 }
+function formatTime(t){let [h,m]=t.split(':').map(Number),s=h>=12?'PM':'AM',hh=h%12||12;return `${hh}:${String(m).padStart(2,'0')} ${s}`}
 
 function Audience({state}){
-  const latest=[...state.programs].sort((a,b)=>(b.lastAudience||0)-(a.lastAudience||0));
-  const totals={};DEMOS.forEach(([k])=>totals[k]=0);
-  latest.forEach(p=>{const ip=getIP(state,p.ipId);DEMOS.forEach(([k])=>totals[k]+=(p.lastAudience||0)*(((p.target?.[k]||40)*.58+(ip?.affinity?.[k]||40)*.42)/500))});
-  const max=Math.max(1,...Object.values(totals));
-  return <div className="dashboard-grid">
-    <Card className="pad span-2"><SectionTitle title="Program Performance" sub="Viewership, viewer love and critical reception stay separate."/><div className="table-wrap"><table><thead><tr><th>Program</th><th>Audience</th><th>TV Rating</th><th>Share</th><th>Viewer</th><th>Critics</th><th>Popularity</th><th>Novelty</th><th>Buzz</th></tr></thead><tbody>{latest.map(p=>{const ip=getIP(state,p.ipId),reach=Math.max(1,networkReachHouseholds(state)),rating=(p.lastAudience||0)/reach*100,share=(p.lastAudience||0)/(reach*.55)*100;return <tr key={p.id}><td><b>{p.title}</b><small>{p.genre}</small></td><td>{num(p.lastAudience)}</td><td>{rating.toFixed(1)}</td><td>{share.toFixed(1)}</td><td>{(p.viewer/10).toFixed(1)}</td><td>{Math.round(p.critic)}%</td><td>{Math.round(ip?.popularity||0)}</td><td>{Math.round(ip?.novelty||0)}</td><td><Pill tone={p.momentum>2?'ok':p.momentum<-2?'danger':''}>{p.momentum>=0?'+':''}{(p.momentum||0).toFixed(1)}</Pill></td></tr>})}</tbody></table></div></Card>
-    <Card className="pad"><SectionTitle title="Audience Shape" sub="Relative strength across the eight core groups."/>{DEMOS.map(([k,l])=><StatBar key={k} label={l} value={totals[k]/max*100}/>)}</Card>
-  </div>
+  const latest=[...state.programs].filter(p=>p.airings>0).sort((a,b)=>(b.lastAudience||0)-(a.lastAudience||0)),totals={};DEMOS.forEach(([k])=>totals[k]=0);latest.forEach(p=>{const ip=getIP(state,p.ipId);DEMOS.forEach(([k])=>totals[k]+=(p.lastAudience||0)*(((p.target?.[k]||40)*.58+(ip?.affinity?.[k]||40)*.42)/500))});const max=Math.max(1,...Object.values(totals));
+  return <div className="dashboard-grid"><Card className="pad span-2"><SectionTitle title="Program Performance" sub="Viewer love, critics and actual audience remain separate."/>{latest.length?<div className="table-wrap"><table><thead><tr><th>Program</th><th>Audience</th><th>Viewer</th><th>Critics</th><th>Popularity</th><th>Novelty</th><th>Buzz</th></tr></thead><tbody>{latest.map(p=>{const ip=getIP(state,p.ipId);return <tr key={p.id}><td><b>{p.title}</b><small>{p.genre}</small></td><td>{num(p.lastAudience)}</td><td>{(p.viewer/10).toFixed(1)}</td><td>{p.critic}%</td><td>{Math.round(ip?.popularity||0)}</td><td>{Math.round(ip?.novelty||0)}</td><td><Pill>{(p.momentum||0)>=0?'+':''}{(p.momentum||0).toFixed(1)}</Pill></td></tr>})}</tbody></table></div>:<Empty>No program has aired yet. Premiere reports arrive in the Inbox.</Empty>}</Card><Card className="pad"><SectionTitle title="Audience Shape"/>{DEMOS.map(([k,l])=><StatBar key={k} label={l} value={totals[k]/max*100}/>)}</Card></div>
 }
 
-function Brand({state}){
-  const b=state.network.brand||state.network;
-  return <div className="split-layout"><Card className="pad"><SectionTitle title="Network Identity" sub="This profile emerges from years of programming decisions."/><div className="brand-seal-large" style={{'--primary':state.network.primary,'--secondary':state.network.secondary}}><i>{state.network.icon}</i><b>{state.network.initials}</b><span>{state.network.name}</span></div></Card><Card className="pad"><SectionTitle title="Audience Associations" sub="A strong identity helps the right shows sample faster."/><StatBar label="Prestige" value={b.prestige||state.network.prestige}/><StatBar label="Trust" value={b.trust||state.network.trust}/><StatBar label="Youth" value={b.youth||state.network.youth}/><StatBar label="Family" value={b.family||state.network.family}/><StatBar label="Sports" value={b.sports||state.network.sports}/><StatBar label="Innovation" value={b.innovation||state.network.innovation}/></Card></div>
-}
-
-function Awards({state}){
-  return <div className="dashboard-grid"><Card className="pad span-2"><SectionTitle title="Awards Calendar" sub="Critical acclaim and craft can convert into prestige, talent attraction and IP value."/><div className="candidate-grid">{state.awards.map(a=><Card className="candidate-card" key={a.id}><h3>{a.name}</h3><span>Month {a.month}</span><div className="chips">{a.categories.map(c=><Pill key={c}>{c}</Pill>)}</div></Card>)}</div></Card><Card className="pad"><SectionTitle title="PCN Trophy Case" sub={`${state.awardHistory.length} wins recorded`}/>{state.awardHistory.length?state.awardHistory.slice(0,12).map((x,i)=><div className="compact-line" key={i}><span>{x.program}<small>{x.award}</small></span><b>{x.category}</b></div>):<Empty>Build acclaimed television and the awards will come.</Empty>}</Card></div>
-}
-
-function Competition({state}){
-  return <div className="program-grid">{state.competitors.map(c=><Card className="pad competitor-card" key={c.id}><span className="eyebrow">{c.identity}</span><h2>{c.name}</h2><StatBar label="Prime" value={c.prime}/><StatBar label="Daytime" value={c.daytime}/><StatBar label="Sports" value={c.sports}/><StatBar label="Prestige" value={c.prestige}/><div className="chips"><Pill tone={(c.momentum||0)>2?'danger':''}>Momentum {(c.momentum||0)>=0?'+':''}{(c.momentum||0).toFixed(1)}</Pill></div></Card>)}</div>
-}
+function Brand({state}){const b=state.network.brand||state.network;return <div className="dashboard-grid"><Card className="pad"><SectionTitle title="Network Identity"/><div className={`brand-seal-large shape-${state.network.shape||'circle'}`} style={{'--primary':state.network.primary,'--secondary':state.network.secondary}}><i>{state.network.icon}</i><b>{state.network.initials}</b><span>{state.network.name}</span></div></Card><Card className="pad"><SectionTitle title="Audience Associations"/><StatBar label="Prestige" value={b.prestige||0}/><StatBar label="Trust" value={b.trust||0}/><StatBar label="Youth" value={b.youth||0}/><StatBar label="Family" value={b.family||0}/><StatBar label="Sports" value={b.sports||0}/><StatBar label="Innovation" value={b.innovation||0}/></Card><Card className="pad"><SectionTitle title="Format Expertise" sub="0–10 skill. Every 2 points = one star. Your selected starting format begins at two stars."/>{FORMAT_EXPERTISE.map(f=>{const v=state.network.expertise?.[f]||0,stars=Math.floor(v/2);return <div className="expertise-row" key={f}><span><b>{f}</b><small>{'★'.repeat(stars)}{'☆'.repeat(5-stars)}</small></span><strong>{v.toFixed(1)} / 10</strong></div>})}</Card></div>}
+function Awards({state}){return <div className="dashboard-grid"><Card className="pad span-2"><SectionTitle title="Awards Calendar"/><div className="candidate-grid">{state.awards.map(a=><Card className="candidate-card" key={a.id}><h3>{a.name}</h3><span>Month {a.month}</span><div className="chips">{a.categories.map(c=><Pill key={c}>{c}</Pill>)}</div></Card>)}</div></Card><Card className="pad"><SectionTitle title="Trophy Case"/>{state.awardHistory.length?state.awardHistory.map((x,i)=><div className="compact-line" key={i}><span>{x.program}</span><b>{x.category}</b></div>):<Empty>No wins yet.</Empty>}</Card></div>}
+function Competition({state}){return <div className="program-grid">{state.competitors.map(c=><Card className="pad competitor-card" key={c.id}><span className="eyebrow">{c.identity}</span><h2>{c.name}</h2><StatBar label="Prime" value={c.prime}/><StatBar label="Daytime" value={c.daytime}/><StatBar label="Sports" value={c.sports}/><StatBar label="Prestige" value={c.prestige}/></Card>)}</div>}
