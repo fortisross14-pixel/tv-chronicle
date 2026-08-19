@@ -69,8 +69,8 @@ export const CONCEPT_ANGLES = {
   Familiar:{novelty:-10,risk:-8,label:'Familiar'},Fresh:{novelty:5,risk:0,label:'Fresh'},Experimental:{novelty:18,risk:12,label:'Experimental'}
 };
 
-export const ART_STYLES = ['sun','grid','bars','ring','noise','split'];
-export const FONT_STYLES = ['condensed','serif','wide','block'];
+export const ART_STYLES = ['cinematic','portrait','newsdesk','stadium','microphone','music-note','trophy','documentary','city','sun','grid','bars','ring','noise','split'];
+export const FONT_STYLES = ['condensed','serif','wide','block','modern','editorial'];
 export const PALETTES = [
   ['#e16634','#1a2737'],['#efc84f','#3b244e'],['#52b7db','#152947'],['#db4e70','#211a36'],['#7bb95a','#14362e'],['#9272d1','#1b213d'],
   ['#e7e2d4','#252f3f'],['#f37c98','#4a234b']
@@ -105,3 +105,113 @@ export const STATE_MARKET_PRESETS = {
 export const NAV = [
   ['dashboard','Inbox','✉'],['studio','Studio','◉'],['channel','Channel','▦'],['business','Business','◆'],['organization','Organization','⌂'],['qa','QA','⚙']
 ];
+
+
+export const ART_BY_FORMAT = {
+  Scripted:'cinematic', Reality:'portrait', Sports:'stadium', News:'newsdesk', Documentaries:'documentary', Live:'microphone', Contests:'trophy', Acquired:'cinematic'
+};
+
+export const ART_BY_GENRE = {
+  Drama:'portrait', Comedy:'city', Kids:'sun', 'Limited Series':'cinematic', Crime:'city', Medical:'portrait', Historical:'cinematic', Fantasy:'cinematic', 'Science Fiction':'grid', Romance:'portrait', Soap:'portrait',
+  Survival:'sun', Dating:'portrait', Lifestyle:'portrait', Travel:'sun', 'Social Experiment':'split', Celebrity:'portrait', Transformation:'portrait', 'Docu-Reality':'documentary',
+  'Live Sports':'stadium', 'Sports News':'newsdesk', Pregame:'stadium', Postgame:'stadium', 'Sports Talk':'microphone', Highlights:'stadium', Analysis:'bars',
+  'Local News':'newsdesk', 'National News':'newsdesk', 'Global News':'newsdesk', 'Morning News':'sun', 'Investigative Report':'documentary', 'Current Affairs':'newsdesk', Weather:'city', 'Special Report':'newsdesk',
+  Nature:'documentary', History:'documentary', Science:'grid', 'True Crime':'documentary', Biography:'portrait', 'Travel Documentary':'sun', 'Current Affairs Documentary':'documentary', Culture:'cinematic',
+  'Talk Show':'microphone', Awards:'trophy', Concert:'music-note', 'Special Event':'cinematic', Variety:'split', 'Late Night Live':'microphone', 'Community Event':'city',
+  'General Knowledge':'trophy', Physical:'stadium', Luck:'ring', Music:'music-note', Skills:'trophy', Talent:'microphone', Obstacle:'stadium', 'Cooking Competition':'trophy'
+};
+
+export const STAGE_TYPES = {
+  small:{label:'Small Stage',cost:850000,days:35,capacity:1,description:'Sitcoms, interviews, compact news/talk and small contests.'},
+  regular:{label:'Regular Stage',cost:1800000,days:55,capacity:2,description:'General-purpose scripted, reality, talk and contest production.'},
+  large:{label:'Large Stage',cost:3600000,days:80,capacity:3,description:'Large sets, historical/fantasy drama and ambitious studio entertainment.'},
+  exterior:{label:'Exterior Backlot',cost:2600000,days:70,capacity:3,description:'Outdoor sets, survival/reality bases and location-heavy productions.'}
+};
+
+export const PRODUCTION_DEPARTMENTS = [
+  ['set','Sets / Dressing'],['vfx','VFX / Practical FX'],['sound','Sound'],['music','Music'],['extras','Extras / Supporting Cast'],['camera','Camera / Image'],['costume','Costume / Makeup']
+];
+
+// Writer-facing story seeds. Titles are intentionally fictional echoes of recognizable TV archetypes, never direct licensed properties.
+export const STORY_TEMPLATES = {
+  Drama:[
+    ['Ecstasy','Several teenagers navigate relationships, addiction, identity and the pressures of coming of age in an affluent suburb.'],
+    ['The Emergency Floor','Doctors and nurses at an overloaded city hospital balance impossible cases with turbulent private lives.'],
+    ['Succession Street','The adult children of an aging media magnate maneuver for control of the family company.'],
+    ['Friday Harbor','A coastal town is shaken when an old disappearance connects several prominent families.']
+  ],
+  Comedy:[
+    ['Theory Department','Four brilliant but socially disastrous researchers discover that friendship is harder than physics.'],
+    ['Paper Company','Employees at an ordinary regional office turn routine work into an endless source of absurdity.'],
+    ['Apartment 5C','Six young neighbors repeatedly become too involved in one another’s careers and relationships.'],
+    ['The Council','A tiny municipal government attempts ambitious civic projects with questionable competence.']
+  ],
+  Historical:[
+    ['Little House in the Meadows','A frontier family builds a life in a small prairie community where every season brings a new test.'],
+    ['Game of Kings','Several noble families fight over a fractured realm while an ancient threat returns beyond the northern frontier.'],
+    ['The Gilded Avenue','Old-money families and newly rich industrialists collide in a rapidly changing nineteenth-century city.']
+  ],
+  Fantasy:[
+    ['Game of Kings','Several noble families fight over a fractured realm while an ancient threat returns beyond the northern frontier.'],
+    ['Ash Crown','A disgraced royal archivist discovers that the myths holding the kingdom together are literally true.'],
+    ['The Seventh Gate','A group of unlikely travelers must cross seven forbidden territories before a dormant empire awakens.']
+  ],
+  'Science Fiction':[
+    ['Red Orbit','The first permanent Mars settlement begins to fracture after Earth loses contact for six months.'],
+    ['Station Eleven B','Workers aboard an aging orbital city discover that their employer has quietly abandoned the station.'],
+    ['Tomorrow’s Children','A generation raised with predictive AI begins rejecting the futures selected for them.']
+  ],
+  Crime:[
+    ['Baltimore Detail','A patient police unit builds a long investigation against a criminal organization while city politics interfere.'],
+    ['Cold Avenue','A homicide detective becomes obsessed with cases other officers have already written off.'],
+    ['The Wire Room','Investigators and defense attorneys fight over one sprawling corruption case from opposite sides.']
+  ],
+  Medical:[
+    ['The Emergency Floor','Doctors and nurses at an overloaded city hospital balance impossible cases with turbulent private lives.'],
+    ['Night Shift County','A rural hospital becomes the last medical lifeline for communities spread across hundreds of miles.']
+  ],
+  Romance:[
+    ['The Summer We Changed','A young woman returns every summer to the same beach town and finds her oldest friendships becoming something else.'],
+    ['Second Coffee','Two people who keep meeting at the wrong time begin to suspect timing may be the entire problem.']
+  ],
+  Survival:[
+    ['Last One Dry','Strangers are dropped into an unforgiving landscape with minimal equipment and no guaranteed food or shelter.'],
+    ['Island Zero','Teams must survive on a remote island while completing resource and endurance challenges.'],
+    ['No Way Home','Contestants travel through hostile terrain while deciding which supplies and teammates they can afford to keep.']
+  ],
+  Dating:[
+    ['Too Warm to Touch','Attractive singles arrive at a luxury retreat and discover that romantic restraint increases the prize fund.'],
+    ['The Last Rose','One eligible single dates a group of contestants and eliminates them across a sequence of romantic challenges.']
+  ],
+  'Social Experiment':[
+    ['The Circle House','Contestants live separately but compete socially through a closed internal network.'],
+    ['Perfect Strangers','Families exchange homes and routines to test how much environment shapes behavior.']
+  ],
+  'General Knowledge':[
+    ['Final Question','Contestants climb a prize ladder by answering increasingly difficult general-knowledge questions.'],
+    ['The Board','Three players control a giant clue board and must decide when to risk their winnings.']
+  ],
+  Physical:[
+    ['American Steel Course','Athletes attempt a spectacular escalating obstacle course where one mistake ends the run.'],
+    ['The Gauntlet','Every episode combines speed, strength, balance and endurance into a changing physical challenge.']
+  ],
+  Music:[
+    ['One More Note','Singers compete through themed performances while judges and viewers determine who advances.'],
+    ['Name That Chorus','Contestants identify songs, performers and musical clues against the clock.']
+  ],
+  'Local News':[
+    ['Community Desk','A daily local newscast covering government, schools, weather, traffic, business and community stories.']
+  ],
+  'National News':[
+    ['National Desk','A daily national news program combining major reporting, politics, business and explanatory segments.']
+  ],
+  Nature:[
+    ['Wild Continent','A cinematic documentary series following ecosystems and animal behavior across one continent.']
+  ],
+  History:[
+    ['The Forgotten Century','Each episode reconstructs an overlooked event that changed the direction of modern history.']
+  ],
+  'Talk Show':[
+    ['Night Conversation','A host mixes interviews, topical comedy, music and recurring studio segments.']
+  ]
+};

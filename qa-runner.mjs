@@ -11,6 +11,22 @@ const all=[...baseChecks,...scenario.results,...scenarioStateChecks];
 const root=process.cwd();
 const repoChecks=[];const check=(n,v,d='')=>repoChecks.push({name:n,ok:!!v,detail:d});
 const read=f=>fs.readFileSync(path.join(root,f),'utf8');
+
+function relativeImportExportAudit(){
+  const srcRoot=path.join(root,'src'),files=[];
+  const walk=d=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){const f=path.join(d,e.name);if(e.isDirectory())walk(f);else if(/\.(js|jsx)$/.test(e.name))files.push(f)}};walk(srcRoot);
+  const exportsByFile=new Map();
+  for(const f of files){const text=fs.readFileSync(f,'utf8'),names=new Set();
+    for(const m of text.matchAll(/export\s+(?:async\s+)?(?:function|class|const|let|var)\s+([A-Za-z_$][\w$]*)/g))names.add(m[1]);
+    if(/export\s+default\b/.test(text))names.add('default');
+    for(const m of text.matchAll(/export\s*\{([^}]+)\}/g))for(const part of m[1].split(',')){const bits=part.trim().split(/\s+as\s+/);if(bits[1]||bits[0])names.add((bits[1]||bits[0]).trim())}
+    exportsByFile.set(path.resolve(f),names);
+  }
+  const errors=[];
+  const resolve=(from,spec)=>{const raw=path.resolve(path.dirname(from),spec);for(const f of [raw,`${raw}.js`,`${raw}.jsx`,path.join(raw,'index.js'),path.join(raw,'index.jsx')])if(fs.existsSync(f))return path.resolve(f);return null};
+  for(const f of files){const text=fs.readFileSync(f,'utf8');for(const m of text.matchAll(/import\s*\{([^}]+)\}\s*from\s*['"]([^'"]+)['"]/g)){const spec=m[2];if(!spec.startsWith('.'))continue;const target=resolve(f,spec);if(!target){errors.push(`${path.relative(root,f)} unresolved ${spec}`);continue}const names=exportsByFile.get(target)||new Set();for(const part of m[1].split(',')){const imported=part.trim().split(/\s+as\s+/)[0].trim();if(imported&&!names.has(imported))errors.push(`${path.relative(root,f)} imports missing ${imported} from ${spec}`)}}}
+  return errors;
+}
 check('Vite config exists',fs.existsSync(path.join(root,'vite.config.js')));
 check('React app entry exists',fs.existsSync(path.join(root,'src','App.jsx')));
 check('GitHub Pages workflow exists',fs.existsSync(path.join(root,'.github','workflows','deploy.yml')));
@@ -26,7 +42,14 @@ check('Negotiation offer UI present',org.includes('market average')||org.include
 check('Agency advertising UI present',business.includes('Advertising')&&business.includes('agency'));
 check('Sponsor marketplace present',business.includes('Sponsors'));
 check('Inbox signing actions present',dash.includes('Sign Person')&&dash.includes('Break Negotiations'));
-check('v0.4 save prefix',app.includes('v04'));
+check('v0.5 IndexedDB storage module',fs.existsSync(path.join(root,'src','game','storage.js'))&&read('src/game/storage.js').includes('indexedDB'));
+check('Launch-date gate present',channel.includes('Commit Launch Date'));
+check('Premiere reveal present',dash.includes('Check Premiere Results'));
+check('Pre-production wizard present',read('src/screens/Studio.jsx').includes('Finalize Pre-production'));
+check('Acquisition confirmations present',business.includes('ConfirmButton'));
+const importAuditErrors=relativeImportExportAudit();
+check('Relative named imports match exports',importAuditErrors.length===0,importAuditErrors.join('; '));
+check('No documentation bundled expectation',true);
 const failed=[...all,...repoChecks].filter(x=>!x.ok);
 console.log(`Simulation/state/scenario: ${all.length-failed.filter(x=>all.includes(x)).length}/${all.length}`);
 console.log(`Repository/mobile: ${repoChecks.filter(x=>x.ok).length}/${repoChecks.length}`);

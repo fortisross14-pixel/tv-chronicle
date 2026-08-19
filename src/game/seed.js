@@ -50,7 +50,9 @@ export function marketCandidates(){
     emp('c27','Peter Lang','Chief Innovation Officer','Executive',70,650000,{technology:76,innovation:78,management:74,research:79}),
     emp('c28','Dani Brooks','Contest Producer','Creative',77,390000,{vision:80,management:84,originality:74,contest:91}),
     emp('c29','Eli Navarro','Documentary Producer','Creative',82,470000,{vision:88,management:76,originality:83,documentary:94}),
-    emp('c30','Monica Reed','Sports Producer','Creative',80,510000,{vision:78,management:88,sports:93,live:86})
+    emp('c30','Monica Reed','Sports Producer','Creative',80,510000,{vision:78,management:88,sports:93,live:86}),
+    emp('c31','Gabriela Stone','Casting Director','Creative',82,430000,{casting:92,negotiation:80,instinct:89,management:76}),
+    emp('c32','Owen Park','Casting Director','Creative',69,235000,{casting:75,negotiation:68,instinct:73,management:72})
   ];
 }
 
@@ -119,7 +121,13 @@ function buildCompetitors(home){
   const state=[['State One','State',58,`${home} established broadcaster`],['Metro State TV','State',54,`${home} urban commercial network`],['Commonwealth Network','State',49,`${home} news-heavy broadcaster`],['Heritage Television','State',45,`${home} older-skewing network`]];
   const local=[['Channel 8 Local','Local',43,'Home-market incumbent'],['Metro 12','Local',40,'Local entertainment'],['CityView 5','Local',38,'Local news + syndicated']];
   const specialist=[['WorldNews 24','Specialist',71,'24-hour news'],['Arena Sports','Specialist',74,'Sports network'],['EarthScope','Specialist',59,'Documentary network'],['Premium One','Specialist',69,'Movies + premium shows']];
-  return [...nat,...state,...local,...specialist].map((x,i)=>({id:`n${i+1}`,name:x[0],scope:x[1],strength:x[2],identity:x[3],prestige:clamp(x[2]+(i%5)-5,25,92),revenue:(x[2]**2)*900000,monthlyAudience:[],audience:{yesterday:0,month:0,year:0},programs:[],formats:{Scripted:50,Reality:50,Sports:50,News:50,Documentaries:50,Live:50,Contests:50},specialty:x[1]==='Specialist'?(i===11?'News':i===12?'Sports':i===13?'Documentaries':'Scripted'):null}));
+  const revenueFor=(scope,strength,i)=>{
+    if(scope==='National') return 4200000000 + (strength-70)*210000000 + i*130000000;
+    if(scope==='State') return 180000000 + (strength-40)*14500000 + (i%4)*22000000;
+    if(scope==='Local') return 28000000 + (strength-35)*6500000 + (i%3)*9000000;
+    return 1200000000 + (strength-55)*125000000 + (i%4)*160000000;
+  };
+  return [...nat,...state,...local,...specialist].map((x,i)=>({id:`n${i+1}`,name:x[0],scope:x[1],strength:x[2],identity:x[3],prestige:clamp(x[2]+(i%5)-5,25,92),revenue:revenueFor(x[1],x[2],i),revenueYTD:0,monthlyAudience:[],audience:{yesterday:0,month:0,year:0},programs:[],formats:{Scripted:50,Reality:50,Sports:50,News:50,Documentaries:50,Live:50,Contests:50},specialty:x[1]==='Specialist'?(i===11?'News':i===12?'Sports':i===13?'Documentaries':'Scripted'):null}));
 }
 
 const adAgencies=[
@@ -142,12 +150,12 @@ export function seedState(options={}){
   ];
   const now='2026-09-01';
   return {
-    version:'0.4.0',date:now,cash:20000000,debt:0,totalRevenue:0,totalExpense:0,lastDayRevenue:0,lastDayAudience:0,weeklyAudience:0,
-    network:{name:options.name||'New Community Network',initials:(options.initials||'NCN').toUpperCase(),icon:options.icon||'★',shape:options.shape||'circle',primary:options.primary||'#f1c232',secondary:options.secondary||'#c8222f',home,prestige:5,trust:8,sports:0,youth:0,family:0,innovation:4,newsTrust:0,brand:{prestige:5,trust:8,youth:0,family:0,sports:0,innovation:4},expertise},
-    states,ips:[],programs:[],developments:[],scheduleBlocks:Object.fromEntries(['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>[d,[]])),scheduleRules:[],employees:[],candidateMarket:marketCandidates(),candidateShortlists:[],staffSearches:[],negotiations:[],
+    version:'0.5.0',date:now,cash:20000000,debt:0,totalRevenue:0,totalExpense:0,lastDayRevenue:0,lastDayAudience:0,weeklyAudience:0,
+    network:{name:options.name||'New Community Network',initials:(options.initials||'NCN').toUpperCase(),icon:options.icon||'★',shape:options.shape||'circle',primary:options.primary||'#f1c232',secondary:options.secondary||'#c8222f',home,launchDate:null,prestige:5,trust:8,sports:0,youth:0,family:0,innovation:4,newsTrust:0,brand:{prestige:5,trust:8,youth:0,family:0,sports:0,innovation:4},expertise},
+    states,ips:[],programs:[],developments:[],contentLicenses:[],pendingTransactions:[],scheduleBlocks:Object.fromEntries(['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>[d,[]])),scheduleRules:[],employees:[],candidateMarket:marketCandidates(),candidateShortlists:[],staffSearches:[],negotiations:[],
     tech:technologies,sponsorships:buildSponsors(),sports:buildSports(),competitors:buildCompetitors(home),ipMarket:buildIPMarket(),contentMarket:buildContentMarket(),awards:[{id:'aw1',name:'National Screen Awards',month:9,categories:['Drama','Comedy','Reality','News','Acting','Writing','Directing','Technical']},{id:'aw2',name:'Critics Guild Television Prizes',month:2,categories:['Drama','Comedy','Limited Series','Reality','Acting','Writing']}],
     agencies:adAgencies,adAgencyContract:null,contracts:[],licenses:[],merchDeals:[],distributionDeals:[],awardHistory:[],research:null,
-    facilities:{studios:0,post:0,newsroom:0,vfx:0,wardrobe:0,setShop:0,control:1,archive:0,research:0},facilityProjects:[],distributionProjects:[],
+    facilities:{studios:0,post:0,newsroom:0,vfx:0,wardrobe:0,setShop:0,control:1,archive:0,research:0},stages:[],stageProjects:[],facilityProjects:[],distributionProjects:[],
     newsroom:{bureaus:0,reporters:0,weather:0,sportsDesk:0,investigative:0,budget:0,trust:0},
     streaming:{unlocked:false,launched:false,name:`${(options.initials||'NCN').toUpperCase()}+`,model:'Hybrid',subscribers:0,price:7.99,adLoad:5,libraryWindow:30},
     automation:{ads:false,schedule:false,production:false,affiliates:false},ratingsLog:[],competitorRatings:[],networkAudienceHistory:[],programRecords:[],financeLog:[],emails:[
@@ -158,5 +166,5 @@ export function seedState(options={}){
 }
 
 export function makeProgramDraft({title='Untitled',format='Scripted',genre='Drama',episodes=10,duration=60,target=affinity(),art='ring',font='condensed',p1='#efc84f',p2='#3b244e',ipId=null}){
-  return {id:uid('p'),title,format,genre,ipId,episodes:Number(episodes),duration:Number(duration),season:1,status:'Pre-production',awareness:8,momentum:0,marketing:0,adLoad:12,scriptStars:3,productionFocus:{writing:60,cast:60,design:50,vfx:20,music:45,sound:55,image:60},technical:{resolution:'1080p',audio:'Stereo',hdr:false},team:{showrunner:null,leadWriter:null,leadTalent:null,director:null},scripts:[],cast:[],castAssignments:{},auditions:[],roles:rolesFor(format,genre),chemistry:50,pipeline:{scripted:Number(episodes),pre:0,filmed:0,ready:0,aired:0},viewer:0,critic:0,quality:0,budgetPerEpisode:format==='Scripted'?420000:format==='Reality'?240000:format==='News'?22000:format==='Documentaries'?180000:format==='Contests'?160000:90000,baseBudgetPerEpisode:format==='Scripted'?420000:format==='Reality'?240000:format==='News'?22000:format==='Documentaries'?180000:format==='Contests'?160000:90000,target,art,font,p1,p2,lastAudience:0,totalAudience:0,airings:0,revenue:0,productionSpend:0,marketingSpend:0,licensingRevenue:0,merchRevenue:0,awards:[],premiered:false,episodeHistory:[]};
+  return {id:uid('p'),title,format,genre,ipId,episodes:Number(episodes),duration:Number(duration),season:1,status:'Pre-production',preProductionStep:1,preProductionFinalized:false,awareness:8,momentum:0,marketing:0,commercialsEnabled:true,adLoad:12,scriptStars:3,productionFocus:{writing:60,cast:60,design:50,vfx:20,music:45,sound:55,image:60},productionAllocation:{set:2,vfx:1,sound:2,music:1,extras:2,camera:2,costume:1},technical:{resolution:'1080p',audio:'Stereo',hdr:false},team:{showrunner:null,leadWriter:null,leadTalent:null,director:null},scripts:[],cast:[],castAssignments:{},auditions:[],roles:rolesFor(format,genre),chemistry:50,stageId:null,recommendedStage:'regular',stageFit:1,promotionPlan:'Standard',pipeline:{scripted:Number(episodes),pre:0,filmed:0,ready:0,aired:0},viewer:0,critic:0,quality:0,suggestedBudgetPerEpisode:format==='Scripted'?420000:format==='Reality'?240000:format==='News'?22000:format==='Documentaries'?180000:format==='Contests'?160000:90000,budgetPerEpisode:format==='Scripted'?420000:format==='Reality'?240000:format==='News'?22000:format==='Documentaries'?180000:format==='Contests'?160000:90000,baseBudgetPerEpisode:format==='Scripted'?420000:format==='Reality'?240000:format==='News'?22000:format==='Documentaries'?180000:format==='Contests'?160000:90000,target,art,font,p1,p2,lastAudience:0,totalAudience:0,airings:0,revenue:0,productionSpend:0,marketingSpend:0,licensingRevenue:0,merchRevenue:0,awards:[],premiered:false,episodeHistory:[]};
 }

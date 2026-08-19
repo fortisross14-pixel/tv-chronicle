@@ -3,8 +3,8 @@ import {
   advanceDays, audition, beginProduction, canStartProduction, castTalent, commissionScript,
   currentProgramRankings, greenlightDevelopment, historicalRecords, ipSeasonEffect, licenseContent,
   networkReachHouseholds, programPnL, scheduleRecurring, signAdAgency, signNegotiation,
-  startAntennaBuild, startEmissionRights, startFacilityBuild, startNegotiation, startResearch,
-  startStaffSearch, audienceRankings
+  startAntennaBuild, startEmissionRights, startNegotiation, startResearch, startStageBuild,
+  startStaffSearch, audienceRankings, setPreProductionPlan, setNetworkLaunchDate, refineDevelopment, isMovieLicenseAvailable
 } from './simulation.js';
 import { seedState } from './seed.js';
 
@@ -15,6 +15,15 @@ export const FEATURE_AUDIT = [
   ['Process-first hiring','Search → shortlist → negotiate → inbox agreement → sign/break'],
   ['Script-first production','Writer commissions script before showrunner/director/casting/stage production'],
   ['Inbox operations','Process completions and negotiated agreements create actionable mail'],
+  ['Persistent mobile saves','localStorage with IndexedDB fallback before session-only mode'],
+  ['Transaction safety','Costly acquisitions and projects use confirm steps and rights lock after purchase'],
+  ['Rolling script delivery','Episode scripts arrive progressively and can feed production before the full season is written'],
+  ['Season refinement','Completed season packages can spend seven days on an optional quality polish'],
+  ['Launch-date planning','Scheduling is locked until an initial air date is committed; prelaunch has no broadcast revenue/ops'],
+  ['Unified pre-production','Greenlight/budget → production plan → casting → promotion → finalize'],
+  ['Individual typed stages','Small, Regular, Large and Exterior stages are exclusive production assets'],
+  ['Premiere reveal','First airing creates a reveal interaction; later airings roll into a daily ratings report'],
+  ['Generated pitches','Writers return a title, synopsis, script rating and suggested episode budget'],
   ['Expanded libraries','20 themed movie libraries; license 1, 4, or full 10/50-title package'],
   ['Expanded rights','20 sports properties from local/high-school through national majors'],
   ['Expanded IP market','20 adaptation-rights opportunities with audience affinities'],
@@ -39,7 +48,7 @@ const okRange=(v,a=0,b=100)=>Number.isFinite(v)&&v>=a&&v<=b;
 
 export function runStateQA(s){
   const r=[],check=(name,ok,detail='')=>r.push({name,ok:!!ok,detail});
-  check('Version is v0.4',s.version==='0.4.0',s.version);
+  check('Version is v0.5',s.version==='0.5.0',s.version);
   check('Starting cash numeric',Number.isFinite(s.cash),String(s.cash));
   check('50 states represented',s.states.length===50,`${s.states.length}`);
   check('State areas exist',s.states.every(x=>Array.isArray(x.areas)&&x.areas.length>=1));
@@ -68,6 +77,10 @@ export function runStateQA(s){
   check('20 IP opportunities',(s.ipMarket?.length||0)>=20,`${s.ipMarket?.length||0}`);
   check('15 persistent competitors',(s.competitors?.length||0)===15,`${s.competitors?.length||0}`);
   check('Competitor mix',s.competitors.filter(x=>x.scope==='National').length===4&&s.competitors.filter(x=>x.scope==='State').length===4&&s.competitors.filter(x=>x.scope==='Local').length===3&&s.competitors.filter(x=>x.scope==='Specialist').length===4);
+  const locals=s.competitors.filter(x=>x.scope==='Local').map(x=>x.revenue),nationals=s.competitors.filter(x=>x.scope==='National').map(x=>x.revenue),states=s.competitors.filter(x=>x.scope==='State').map(x=>x.revenue);
+  check('Local competitor revenue plausible',Math.max(...locals)<250000000,`max ${Math.round(Math.max(...locals)/1e6)}m`);
+  check('State competitor revenue below national',Math.max(...states)<1500000000,`max ${Math.round(Math.max(...states)/1e6)}m`);
+  check('National competitor revenue multi-billion',Math.min(...nationals)>3000000000,`min ${(Math.min(...nationals)/1e9).toFixed(1)}b`);
   check('Four ad agencies',(s.agencies?.length||0)>=4);
   check('Sponsor marketplace',(s.sponsorships?.length||0)>=12);
   check('Audience history arrays',Array.isArray(s.networkAudienceHistory)&&Array.isArray(s.competitorRatings));
@@ -93,29 +106,36 @@ function forceRecruit(s,role){
 
 export function runScenarioQA(){
   let s=seedState({name:'QA Community Network',initials:'QCN',home:'VA',focus:'Live'}),out=[],check=(name,ok,detail='')=>out.push({name,ok:!!ok,detail});
-  check('Career starts empty',s.programs.length===0&&s.employees.length===0&&s.facilities.studios===0);
+  check('Career starts empty',s.programs.length===0&&s.employees.length===0&&s.stages.length===0&&s.network.launchDate===null);
+  const prelaunch=advanceDays(s,14);check('Prelaunch has no broadcast revenue',prelaunch.totalRevenue===0,String(prelaunch.totalRevenue));
   const beforeResearch=s.research;s=startResearch(s,'t_4k');check('Research blocked without CIO',s.research===beforeResearch);
   for(const role of ['Writer','Showrunner','Director','Host'])s=forceRecruit(s,role);
   check('Negotiated four-person starter team',['Writer','Showrunner','Director','Host'].every(role=>s.employees.some(e=>e.role===role)),s.employees.map(e=>e.role).join(', '));
   s=forceRecruit(s,'Chief Innovation Officer');check('CIO can be recruited',s.employees.some(e=>e.role==='Chief Innovation Officer'));
   s=startResearch(s,'t_4k');check('CIO unlocks research',!!s.research);
   const writer=s.employees.find(e=>e.role==='Writer');
-  s=commissionScript(s,{title:'QA Tonight',format:'Live',genre:'Talk Show',theme:'Contemporary',angle:'Fresh',episodes:4,duration:30,writerId:writer?.id});
-  s=advanceDays(s,60);const d=s.developments.find(x=>x.title==='QA Tonight');check('Script completes over time',d?.status==='Complete'&&d.scriptStars>=1&&d.scriptStars<=5,d?.status);
-  s=startFacilityBuild(s,'studios');s=advanceDays(s,65);check('Stage construction completes',s.facilities.studios>=1,String(s.facilities.studios));
+  s=commissionScript(s,{title:'QA Tonight',format:'Live',genre:'Talk Show',theme:'Contemporary',angle:'Fresh',episodes:8,duration:30,writerId:writer?.id});
+  let d=s.developments.find(x=>x.title==='QA Tonight'),interval=d?.episodeInterval||1;s=advanceDays(s,interval+1);d=s.developments.find(x=>x.title==='QA Tonight');
+  check('Scripts arrive progressively',(d?.scriptedEpisodes||0)>=1&&(d?.scriptedEpisodes||0)<d.episodes,`${d?.scriptedEpisodes}/${d?.episodes}`);
   const sr=s.employees.find(e=>e.role==='Showrunner'),dir=s.employees.find(e=>e.role==='Director'),host=s.employees.find(e=>e.role==='Host');
-  s=greenlightDevelopment(s,d.id,{showrunnerId:sr?.id,directorId:dir?.id});const p=s.programs.find(x=>x.title==='QA Tonight');check('Greenlight creates program',!!p);
-  if(p&&host){s=audition(s,p.id,host.id,p.roles[0]?.id);s=castTalent(s,p.id,host.id,p.roles[0]?.id);}check('Casting occurs after greenlight',!!p&&Object.keys(s.programs.find(x=>x.id===p.id)?.castAssignments||{}).length>0);
-  check('Production gate can clear',p?canStartProduction(s,s.programs.find(x=>x.id===p.id)).ok:false);
-  if(p)s=beginProduction(s,p.id);s=advanceDays(s,80);const produced=p&&s.programs.find(x=>x.id===p.id);check('Production delivers episodes',(produced?.pipeline.ready||0)>=1,produced?.pipeline.ready?.toFixed?.(1)||'0');
-  if(produced){s=scheduleRecurring(s,{programId:produced.id,start:'20:00',recurrence:'weekly',primaryDay:DAYS[(new Date(s.date+'T00:00:00').getDay()+6)%7],weeks:3});check('Recurring schedule rule created',s.scheduleRules.length===1);}
+  s=greenlightDevelopment(s,d.id,{budgetPerEpisode:d.suggestedBudgetPerEpisode});let p=s.programs.find(x=>x.developmentId===d.id);check('Greenlight allowed after first script',!!p&&p.pipeline.scripted>=1,`${p?.pipeline.scripted||0}`);
+  s=startStageBuild(s,'small');s=advanceDays(s,40);check('Typed stage construction completes',s.stages.some(x=>x.type==='small'),s.stages.map(x=>x.type).join(','));
+  p=s.programs.find(x=>x.id===p.id);if(p&&host){s=audition(s,p.id,host.id,p.roles[0]?.id);s=castTalent(s,p.id,host.id,p.roles[0]?.id);}check('Casting occurs inside pre-production',!!p&&Object.keys(s.programs.find(x=>x.id===p.id)?.castAssignments||{}).length>0);
+  const stage=s.stages.find(x=>x.type==='small');s=setPreProductionPlan(s,p.id,{allocation:{set:2,vfx:0,sound:2,music:1,extras:2,camera:2,costume:1},technical:{resolution:'1080p',audio:'Stereo',hdr:false},commercialsEnabled:true,promotionPlan:'Light',showrunnerId:sr?.id,directorId:dir?.id,stageId:stage?.id});p=s.programs.find(x=>x.id===p.id);
+  check('Pre-production wizard can finalize',p?.preProductionFinalized===true);check('Production gate can clear',canStartProduction(s,p).ok,canStartProduction(s,p).reason);
+  s=beginProduction(s,p.id);s=advanceDays(s,35);p=s.programs.find(x=>x.id===p.id);d=s.developments.find(x=>x.id===d.id);check('Production respects rolling script cap',p.pipeline.ready<=p.pipeline.scripted+1e-5,`${p.pipeline.ready.toFixed(1)}/${p.pipeline.scripted}`);
+  s=advanceDays(s,90);p=s.programs.find(x=>x.id===p.id);d=s.developments.find(x=>x.id===d.id);check('Full season scripts complete',d.status==='Complete'&&d.scriptedEpisodes===d.episodes,d.status);
+  const priorStars=d.scriptStars;s=refineDevelopment(s,d.id);s=advanceDays(s,8);d=s.developments.find(x=>x.id===d.id);check('Season refinement takes time and improves quality',d.refined&&d.scriptStars>=priorStars,`${priorStars?.toFixed(1)}→${d.scriptStars?.toFixed(1)}`);
+  s=setNetworkLaunchDate(s,s.date);check('Launch date can be committed',!!s.network.launchDate,s.network.launchDate);
+  p=s.programs.find(x=>x.id===p.id);if((p.pipeline.ready||0)<1)s=advanceDays(s,45);p=s.programs.find(x=>x.id===p.id);const today=DAYS[(new Date(s.date+'T00:00:00').getDay()+6)%7];s=scheduleRecurring(s,{programId:p.id,start:'20:00',recurrence:'weekly',primaryDay:today,weeks:3});check('Recurring schedule rule created',s.scheduleRules.length===1);
   s=signAdAgency(s,s.agencies[3].id);check('Advertising agency contract signs',!!s.adAgencyContract);
   s=advanceDays(s,10);check('15 rivals generate scoped ratings',s.competitorRatings.length>0&&s.competitorRatings.every(x=>Number.isFinite(x.stateAudience)&&Number.isFinite(x.localAudience)));
-  check('Network rankings return 16 networks',audienceRankings(s,'yesterday','national').length===16);
-  check('Current-year program rankings work',currentProgramRankings(s,{scope:'local'}).length>0);
+  const ranks=audienceRankings(s,'yesterday','national');check('Network rankings return 16 networks',ranks.length===16);check('Audience ranking has total + average',ranks.every(x=>Number.isFinite(x.totalAudience)&&Number.isFinite(x.audience)));
+  check('Current-year program rankings include total + average',currentProgramRankings(s,{scope:'local'}).every(x=>Number.isFinite(x.audience)&&Number.isFinite(x.totalAudience)));
   check('Historical record query works',Array.isArray(historicalRecords(s,{format:'all',metric:'audience'})));
   const market=s.states.find(x=>x.code==='CA'),area=market.areas[0];let e=startEmissionRights(s,'CA',area.id);check('Emission rights start as process',e.distributionProjects.some(x=>x.kind==='rights'&&x.state==='CA'));e=advanceDays(e,20);const ca=e.states.find(x=>x.code==='CA'),caArea=ca.areas[0];check('Emission rights complete over time',caArea.rightsOwned);e=startAntennaBuild(e,'CA',caArea.id,1);check('Antenna requires rights and starts process',e.distributionProjects.some(x=>x.kind==='antenna'&&x.state==='CA'));
-  let lib=seedState({home:'VA'}),pack=lib.contentMarket[0];lib=licenseContent(lib,pack.id,'four',pack.movies[0].id);check('Four-movie cycle licenses four titles',lib.programs.length===4,String(lib.programs.length));
+  let lib=seedState({home:'VA'}),pack=lib.contentMarket[0],movie=pack.movies[0];check('Movie rights initially available',isMovieLicenseAvailable(lib,pack.id,'single',movie.id));lib=licenseContent(lib,pack.id,'single',movie.id);const n=lib.programs.length;check('Movie rights lock after purchase',!isMovieLicenseAvailable(lib,pack.id,'single',movie.id));lib=licenseContent(lib,pack.id,'single',movie.id);check('Duplicate rights purchase blocked',lib.programs.length===n,String(lib.programs.length));
+  let neg=seedState({home:'VA'}),cand=neg.candidateMarket.find(x=>x.role==='Writer');neg=startNegotiation(neg,cand.id,cand.ask*.94,cand.demands?.years||3,cand.demands?.bonus||0,cand.demands?.backend||0,cand.demands?.creativeControl||0);neg=advanceDays(neg,6);const nn=neg.negotiations.find(x=>x.candidateId===cand.id);check('Close employment offer gets counter/accept, not hard reject',['Countered','Agreed'].includes(nn?.status),nn?.status);
   return {state:s,results:out};
 }
 
