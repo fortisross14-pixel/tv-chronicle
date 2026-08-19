@@ -1,5 +1,5 @@
 import { affinity, clamp, uid } from './utils.js';
-import { STATE_LAYOUT, STATE_HOUSEHOLDS, STATE_MARKET_PRESETS, FORMAT_EXPERTISE } from './constants.js';
+import { STATE_LAYOUT, STATE_HOUSEHOLDS, STATE_MARKET_PRESETS, FORMAT_EXPERTISE, QUALITY_TIERS } from './constants.js';
 
 const emp=(id,name,role,dept,overall,ask,skills={},extra={})=>({
   id,name,role,dept,overall,salary:0,ask,marketAverage:extra.marketAverage||Math.round(ask*.92),skills,morale:72,contractYears:0,popularity:extra.popularity??overall*.32,
@@ -8,8 +8,14 @@ const emp=(id,name,role,dept,overall,ask,skills={},extra={})=>({
 });
 const tech=(id,name,group,tier,researched,desc,cost=0)=>({id,name,group,tier,progress:researched?100:0,researched,desc,cost});
 
-export function rolesFor(format,genre){
-  if(format==='Scripted')return [{id:'lead1',name:'Lead',kind:'Actor'},{id:'lead2',name:'Co-Lead',kind:'Actor'},{id:'support1',name:'Supporting',kind:'Actor'}];
+export function rolesFor(format,genre,qualityTier='normal'){
+  const tier=QUALITY_TIERS[qualityTier]||QUALITY_TIERS.normal;
+  if(format==='Scripted'){
+    const roles=[];
+    for(let i=0;i<tier.leadActors;i++)roles.push({id:`lead${i+1}`,name:tier.leadActors===1?'Lead':`Lead ${i+1}`,kind:'Actor'});
+    for(let i=0;i<tier.supportActors;i++)roles.push({id:`support${i+1}`,name:tier.supportActors===1?'Supporting':`Supporting ${i+1}`,kind:'Actor'});
+    return roles;
+  }
   if(format==='Reality')return [{id:'host',name:'Host',kind:'Host'}];
   if(format==='Contests')return [{id:'host',name:'Host',kind:'Host'}];
   if(format==='News')return [{id:'anchor',name:genre.includes('News')?'Anchor':'Presenter',kind:'Anchor'}];
@@ -28,13 +34,13 @@ export function marketCandidates(){
     emp('c5','Colin West','Director','Creative',81,460000,{direction:89,actors:84,visual:81,management:73}),
     emp('c6','Carla Ruiz','Director','Creative',76,300000,{direction:84,actors:80,visual:74,management:70}),
     emp('c7','Marcus Hale','Showrunner','Creative',72,320000,{writing:72,vision:75,management:82,originality:65,reality:79}),
-    emp('c8','Naomi Cruz','Actor','Talent',88,780000,{acting:93,drama:95,charisma:89,comedy:72},{popularity:84,backend:1}),
-    emp('c9','Miles Rowan','Actor','Talent',83,610000,{acting:87,drama:82,charisma:91,comedy:76},{popularity:77}),
-    emp('c10','Ava Mercer','Actor','Talent',78,360000,{acting:84,drama:86,charisma:76,comedy:58},{popularity:49}),
-    emp('c11','Theo Jameson','Actor','Talent',74,290000,{acting:79,drama:73,charisma:82,comedy:65},{popularity:43}),
-    emp('c12','Rory Vale','Host','Talent',69,245000,{charisma:78,improv:74,reality:80,news:45,contest:72},{popularity:54}),
-    emp('c13','Tessa Grant','Anchor','Talent',76,335000,{charisma:83,trust:79,news:86,improv:64},{popularity:58}),
-    emp('c14','Liam Cook','Sports Host','Talent',79,520000,{charisma:84,sports:91,analysis:82},{popularity:66}),
+    emp('c8','Naomi Cruz','Actor','Talent',88,780000,{acting:93,drama:95,charisma:89,comedy:72},{popularity:84,backend:1,gender:'Female'}),
+    emp('c9','Miles Rowan','Actor','Talent',83,610000,{acting:87,drama:82,charisma:91,comedy:76},{popularity:77,gender:'Male'}),
+    emp('c10','Ava Mercer','Actor','Talent',78,360000,{acting:84,drama:86,charisma:76,comedy:58},{popularity:49,gender:'Female'}),
+    emp('c11','Theo Jameson','Actor','Talent',74,290000,{acting:79,drama:73,charisma:82,comedy:65},{popularity:43,gender:'Male'}),
+    emp('c12','Rory Vale','Host','Talent',69,245000,{charisma:78,improv:74,reality:80,news:45,contest:72},{popularity:54,gender:'Male'}),
+    emp('c13','Tessa Grant','Anchor','Talent',76,335000,{charisma:83,trust:79,news:86,improv:64},{popularity:58,gender:'Female'}),
+    emp('c14','Liam Cook','Sports Host','Talent',79,520000,{charisma:84,sports:91,analysis:82},{popularity:66,gender:'Male'}),
     emp('c15','Priya Nair','VFX Supervisor','Production',84,360000,{vfx:94,management:76,technology:88}),
     emp('c16','Inez Cole','Broadcast Engineer','Technology',75,190000,{technology:84,reliability:90}),
     emp('c17','Jonah Price','Ad Sales Executive','Commercial',77,275000,{sales:88,negotiation:83,analytics:61}),
@@ -150,10 +156,10 @@ export function seedState(options={}){
   ];
   const now='2026-09-01';
   return {
-    version:'0.5.0',date:now,cash:20000000,debt:0,totalRevenue:0,totalExpense:0,lastDayRevenue:0,lastDayAudience:0,weeklyAudience:0,
+    version:'0.6.0',date:now,cash:20000000,debt:0,totalRevenue:0,totalExpense:0,lastDayRevenue:0,lastDayAudience:0,weeklyAudience:0,
     network:{name:options.name||'New Community Network',initials:(options.initials||'NCN').toUpperCase(),icon:options.icon||'★',shape:options.shape||'circle',primary:options.primary||'#f1c232',secondary:options.secondary||'#c8222f',home,launchDate:null,prestige:5,trust:8,sports:0,youth:0,family:0,innovation:4,newsTrust:0,brand:{prestige:5,trust:8,youth:0,family:0,sports:0,innovation:4},expertise},
     states,ips:[],programs:[],developments:[],contentLicenses:[],pendingTransactions:[],scheduleBlocks:Object.fromEntries(['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>[d,[]])),scheduleRules:[],employees:[],candidateMarket:marketCandidates(),candidateShortlists:[],staffSearches:[],negotiations:[],
-    tech:technologies,sponsorships:buildSponsors(),sports:buildSports(),competitors:buildCompetitors(home),ipMarket:buildIPMarket(),contentMarket:buildContentMarket(),awards:[{id:'aw1',name:'National Screen Awards',month:9,categories:['Drama','Comedy','Reality','News','Acting','Writing','Directing','Technical']},{id:'aw2',name:'Critics Guild Television Prizes',month:2,categories:['Drama','Comedy','Limited Series','Reality','Acting','Writing']}],
+    tech:technologies,sponsorships:buildSponsors(),sports:buildSports(),competitors:buildCompetitors(home),ipMarket:buildIPMarket(),contentMarket:buildContentMarket(),awards:[{id:'local-awards',name:'Local Television Honors',scope:'Local',date:'11-15'},{id:'state-awards',name:'State Television Awards',scope:'State',date:'12-01'},{id:'national-awards',name:'National Television Awards',scope:'National',date:'12-20'}],
     agencies:adAgencies,adAgencyContract:null,contracts:[],licenses:[],merchDeals:[],distributionDeals:[],awardHistory:[],research:null,
     facilities:{studios:0,post:0,newsroom:0,vfx:0,wardrobe:0,setShop:0,control:1,archive:0,research:0},stages:[],stageProjects:[],facilityProjects:[],distributionProjects:[],
     newsroom:{bureaus:0,reporters:0,weather:0,sportsDesk:0,investigative:0,budget:0,trust:0},
@@ -165,6 +171,6 @@ export function seedState(options={}){
   };
 }
 
-export function makeProgramDraft({title='Untitled',format='Scripted',genre='Drama',episodes=10,duration=60,target=affinity(),art='ring',font='condensed',p1='#efc84f',p2='#3b244e',ipId=null}){
-  return {id:uid('p'),title,format,genre,ipId,episodes:Number(episodes),duration:Number(duration),season:1,status:'Pre-production',preProductionStep:1,preProductionFinalized:false,awareness:8,momentum:0,marketing:0,commercialsEnabled:true,adLoad:12,scriptStars:3,productionFocus:{writing:60,cast:60,design:50,vfx:20,music:45,sound:55,image:60},productionAllocation:{set:2,vfx:1,sound:2,music:1,extras:2,camera:2,costume:1},technical:{resolution:'1080p',audio:'Stereo',hdr:false},team:{showrunner:null,leadWriter:null,leadTalent:null,director:null},scripts:[],cast:[],castAssignments:{},auditions:[],roles:rolesFor(format,genre),chemistry:50,stageId:null,recommendedStage:'regular',stageFit:1,promotionPlan:'Standard',pipeline:{scripted:Number(episodes),pre:0,filmed:0,ready:0,aired:0},viewer:0,critic:0,quality:0,suggestedBudgetPerEpisode:format==='Scripted'?420000:format==='Reality'?240000:format==='News'?22000:format==='Documentaries'?180000:format==='Contests'?160000:90000,budgetPerEpisode:format==='Scripted'?420000:format==='Reality'?240000:format==='News'?22000:format==='Documentaries'?180000:format==='Contests'?160000:90000,baseBudgetPerEpisode:format==='Scripted'?420000:format==='Reality'?240000:format==='News'?22000:format==='Documentaries'?180000:format==='Contests'?160000:90000,target,art,font,p1,p2,lastAudience:0,totalAudience:0,airings:0,revenue:0,productionSpend:0,marketingSpend:0,licensingRevenue:0,merchRevenue:0,awards:[],premiered:false,episodeHistory:[]};
+export function makeProgramDraft({title='Untitled',format='Scripted',genre='Drama',episodes=10,duration=60,target=affinity(),art='ring',font='condensed',p1='#efc84f',p2='#3b244e',ipId=null,qualityTier='normal'}){
+  return {id:uid('p'),title,format,genre,ipId,episodes:Number(episodes),duration:Number(duration),season:1,status:'Pre-production',preProductionStep:1,preProductionFinalized:false,awareness:8,momentum:0,marketing:0,commercialsEnabled:true,adLoad:12,scriptStars:3,productionFocus:{writing:60,cast:60,design:50,vfx:20,music:45,sound:55,image:60},productionAllocation:{set:2,vfx:1,sound:2,music:1,extras:2,camera:2,costume:1},technical:{resolution:'1080p',audio:'Stereo',hdr:false},qualityTier,team:{showrunner:null,leadWriter:null,writers:[],leadTalent:null,director:null},scripts:[],cast:[],castAssignments:{},auditions:[],roles:rolesFor(format,genre,qualityTier),chemistry:50,stageId:null,recommendedStage:'regular',stageFit:1,promotionPlan:'Standard',pipeline:{scripted:Number(episodes),pre:0,filmed:0,ready:0,aired:0},viewer:0,critic:0,quality:0,suggestedBudgetPerEpisode:format==='Scripted'?420000:format==='Reality'?240000:format==='News'?22000:format==='Documentaries'?180000:format==='Contests'?160000:90000,budgetPerEpisode:format==='Scripted'?420000:format==='Reality'?240000:format==='News'?22000:format==='Documentaries'?180000:format==='Contests'?160000:90000,baseBudgetPerEpisode:format==='Scripted'?420000:format==='Reality'?240000:format==='News'?22000:format==='Documentaries'?180000:format==='Contests'?160000:90000,target,art,font,p1,p2,lastAudience:0,totalAudience:0,airings:0,revenue:0,productionSpend:0,marketingSpend:0,licensingRevenue:0,merchRevenue:0,awards:[],premiered:false,episodeHistory:[]};
 }

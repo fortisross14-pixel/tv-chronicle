@@ -41,7 +41,7 @@ export default function App(){
   const openProgram=id=>{setProgramFocus(id);setPage('studio')};
   const screen={dashboard:<Dashboard state={state} setState={setStateRaw} onNavigate={setPage} onOpenProgram={openProgram}/>,studio:<Studio state={state} setState={setStateRaw} focusProgramId={programFocus} onProgramFocused={()=>setProgramFocus(null)}/>,channel:<Channel state={state} setState={setStateRaw}/>,business:<Business state={state} setState={setStateRaw}/>,organization:<Organization state={state} setState={setStateRaw}/>,qa:<QA state={state}/>} [page];
 
-  return <div className="app-shell">
+  return <div className={`app-shell page-${page}`}>
     <aside className="sidebar">
       <button className="brand-button" onClick={()=>setPage('dashboard')}>
         <span className={`brand-mark shape-${state.network.shape||'circle'}`} style={{'--primary':state.network.primary,'--secondary':state.network.secondary}}>{state.network.icon}</span>

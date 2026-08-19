@@ -22,6 +22,16 @@ const posterMotif=p=>{
   if(a==='documentary')return <div className="poster-doc"><i/><b/></div>;
   if(a==='city')return <div className="poster-city"><i/><i/><i/><i/></div>;
   if(a==='cinematic')return <div className="poster-cinematic"><i/><b/></div>;
+  if(a==='daily-news')return <div className="poster-daily-news"><i/><b/><em>LIVE</em></div>;
+  if(a==='talkset')return <div className="poster-talkset"><i/><b/><em/></div>;
+  if(a==='quiz')return <div className="poster-quiz"><i>?</i><b/><em/></div>;
+  if(a==='obstacle')return <div className="poster-obstacle"><i/><i/><b/></div>;
+  if(a==='nature-doc')return <div className="poster-nature"><i/><b/><em/></div>;
+  if(a==='medical')return <div className="poster-medical"><i>+</i><b/></div>;
+  if(a==='courtroom')return <div className="poster-court"><i/><i/><i/><b/></div>;
+  if(a==='space')return <div className="poster-space"><i/><b/><em/></div>;
+  if(a==='fantasy')return <div className="poster-fantasy"><i/><b/><em/></div>;
+  if(a==='island')return <div className="poster-island"><i/><b/><em/></div>;
   return null;
 };
 export function ProgramPoster({p,compact=false}){

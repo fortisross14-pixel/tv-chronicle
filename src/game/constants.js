@@ -27,12 +27,18 @@ export const FORMATS = {
   Scripted: ['Drama','Comedy','Kids','Limited Series','Crime','Medical','Historical','Fantasy','Science Fiction','Romance','Soap'],
   Reality: ['Survival','Dating','Lifestyle','Travel','Social Experiment','Celebrity','Transformation','Docu-Reality'],
   Sports: ['Live Sports','Sports News','Pregame','Postgame','Sports Talk','Highlights','Analysis'],
-  News: ['Local News','National News','Global News','Morning News','Investigative Report','Current Affairs','Weather','Special Report'],
+  News: ['Local News','Daily News','National News','Global News','Morning News','Investigative Report','Current Affairs','Weather','Special Report'],
   Documentaries: ['Nature','History','Science','True Crime','Biography','Travel Documentary','Current Affairs Documentary','Culture'],
-  Live: ['Talk Show','Awards','Concert','Special Event','Variety','Late Night Live','Community Event'],
+  Live: ['Daily Live Show','Talk Show','Awards','Concert','Special Event','Variety','Late Night Live','Community Event'],
   Contests: ['General Knowledge','Physical','Luck','Music','Skills','Talent','Obstacle','Cooking Competition']
 };
 export const FORMAT_EXPERTISE = Object.keys(FORMATS);
+
+export const QUALITY_TIERS = {
+  normal:{id:'normal',label:'Normal',stars:'1.0–2.5 ★',minStars:1,maxStars:2.5,writers:1,leadActors:1,supportActors:1,budgetMult:.78,description:'Lean local television. One writer, compact casting and lower production expectations.'},
+  premium:{id:'premium',label:'Premium',stars:'2.5–4.0 ★',minStars:2.5,maxStars:4,writers:2,leadActors:2,supportActors:1,budgetMult:1.18,description:'Serious commercial production. Two writers and a stronger creative/production package.'},
+  elite:{id:'elite',label:'Elite',stars:'4.0–5.0 ★',minStars:4,maxStars:5,writers:3,leadActors:3,supportActors:2,budgetMult:2.05,description:'Flagship television. Three writers, ensemble star requirements and expensive production infrastructure.'}
+};
 
 export const FORMAT_NEEDS = {
   Drama:{writing:1.25,cast:1.2,design:1.0,vfx:.55,music:.8,sound:.8,image:1.0},
@@ -44,8 +50,10 @@ export const FORMAT_NEEDS = {
   Survival:{writing:.45,cast:1.0,design:.45,vfx:.1,music:.65,sound:.9,image:.9},
   Dating:{writing:.4,cast:1.2,design:.7,vfx:.1,music:.7,sound:.8,image:.85},
   'Local News':{writing:.45,cast:1.2,design:.65,vfx:.1,music:.35,sound:1.15,image:1.0},
+  'Daily News':{writing:.5,cast:1.2,design:.7,vfx:.1,music:.4,sound:1.15,image:1.0},
   'National News':{writing:.55,cast:1.15,design:.65,vfx:.1,music:.35,sound:1.15,image:1.0},
   'Global News':{writing:.6,cast:1.1,design:.7,vfx:.1,music:.35,sound:1.2,image:1.05},
+  'Daily Live Show':{writing:.62,cast:1.35,design:.7,vfx:.1,music:.6,sound:1.0,image:.88},
   'Talk Show':{writing:.65,cast:1.35,design:.55,vfx:.1,music:.45,sound:.9,image:.8},
   Nature:{writing:.85,cast:.25,design:.25,vfx:.2,music:.9,sound:1.05,image:1.35},
   History:{writing:1.15,cast:.35,design:.45,vfx:.4,music:.8,sound:.95,image:1.05},
@@ -69,7 +77,7 @@ export const CONCEPT_ANGLES = {
   Familiar:{novelty:-10,risk:-8,label:'Familiar'},Fresh:{novelty:5,risk:0,label:'Fresh'},Experimental:{novelty:18,risk:12,label:'Experimental'}
 };
 
-export const ART_STYLES = ['cinematic','portrait','newsdesk','stadium','microphone','music-note','trophy','documentary','city','sun','grid','bars','ring','noise','split'];
+export const ART_STYLES = ['cinematic','portrait','newsdesk','daily-news','stadium','microphone','talkset','music-note','trophy','quiz','obstacle','documentary','nature-doc','city','medical','courtroom','space','fantasy','island','sun','grid','bars','ring','noise','split'];
 export const FONT_STYLES = ['condensed','serif','wide','block','modern','editorial'];
 export const PALETTES = [
   ['#e16634','#1a2737'],['#efc84f','#3b244e'],['#52b7db','#152947'],['#db4e70','#211a36'],['#7bb95a','#14362e'],['#9272d1','#1b213d'],
@@ -112,13 +120,13 @@ export const ART_BY_FORMAT = {
 };
 
 export const ART_BY_GENRE = {
-  Drama:'portrait', Comedy:'city', Kids:'sun', 'Limited Series':'cinematic', Crime:'city', Medical:'portrait', Historical:'cinematic', Fantasy:'cinematic', 'Science Fiction':'grid', Romance:'portrait', Soap:'portrait',
-  Survival:'sun', Dating:'portrait', Lifestyle:'portrait', Travel:'sun', 'Social Experiment':'split', Celebrity:'portrait', Transformation:'portrait', 'Docu-Reality':'documentary',
+  Drama:'portrait', Comedy:'city', Kids:'sun', 'Limited Series':'cinematic', Crime:'city', Medical:'medical', Historical:'cinematic', Fantasy:'fantasy', 'Science Fiction':'space', Romance:'portrait', Soap:'portrait',
+  Survival:'island', Dating:'portrait', Lifestyle:'portrait', Travel:'sun', 'Social Experiment':'split', Celebrity:'portrait', Transformation:'portrait', 'Docu-Reality':'documentary',
   'Live Sports':'stadium', 'Sports News':'newsdesk', Pregame:'stadium', Postgame:'stadium', 'Sports Talk':'microphone', Highlights:'stadium', Analysis:'bars',
-  'Local News':'newsdesk', 'National News':'newsdesk', 'Global News':'newsdesk', 'Morning News':'sun', 'Investigative Report':'documentary', 'Current Affairs':'newsdesk', Weather:'city', 'Special Report':'newsdesk',
-  Nature:'documentary', History:'documentary', Science:'grid', 'True Crime':'documentary', Biography:'portrait', 'Travel Documentary':'sun', 'Current Affairs Documentary':'documentary', Culture:'cinematic',
-  'Talk Show':'microphone', Awards:'trophy', Concert:'music-note', 'Special Event':'cinematic', Variety:'split', 'Late Night Live':'microphone', 'Community Event':'city',
-  'General Knowledge':'trophy', Physical:'stadium', Luck:'ring', Music:'music-note', Skills:'trophy', Talent:'microphone', Obstacle:'stadium', 'Cooking Competition':'trophy'
+  'Local News':'newsdesk', 'Daily News':'daily-news', 'National News':'newsdesk', 'Global News':'newsdesk', 'Morning News':'daily-news', 'Investigative Report':'documentary', 'Current Affairs':'newsdesk', Weather:'city', 'Special Report':'newsdesk',
+  Nature:'nature-doc', History:'documentary', Science:'grid', 'True Crime':'documentary', Biography:'portrait', 'Travel Documentary':'sun', 'Current Affairs Documentary':'documentary', Culture:'cinematic',
+  'Daily Live Show':'talkset', 'Talk Show':'talkset', Awards:'trophy', Concert:'music-note', 'Special Event':'cinematic', Variety:'split', 'Late Night Live':'microphone', 'Community Event':'city',
+  'General Knowledge':'quiz', Physical:'obstacle', Luck:'ring', Music:'music-note', Skills:'trophy', Talent:'microphone', Obstacle:'obstacle', 'Cooking Competition':'trophy'
 };
 
 export const STAGE_TYPES = {

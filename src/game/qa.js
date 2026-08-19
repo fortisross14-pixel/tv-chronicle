@@ -1,10 +1,10 @@
-import { BROADCAST_SLOTS, DAYS, DURATION_OPTIONS, FORMATS, FORMAT_EXPERTISE } from './constants.js';
+import { BROADCAST_SLOTS, DAYS, DURATION_OPTIONS, FORMATS, FORMAT_EXPERTISE, QUALITY_TIERS } from './constants.js';
 import {
   advanceDays, audition, beginProduction, canStartProduction, castTalent, commissionScript,
   currentProgramRankings, greenlightDevelopment, historicalRecords, ipSeasonEffect, licenseContent,
   networkReachHouseholds, programPnL, scheduleRecurring, signAdAgency, signNegotiation,
   startAntennaBuild, startEmissionRights, startNegotiation, startResearch, startStageBuild,
-  startStaffSearch, audienceRankings, setPreProductionPlan, setNetworkLaunchDate, refineDevelopment, isMovieLicenseAvailable
+  startStaffSearch, audienceRankings, setPreProductionPlan, setNetworkLaunchDate, refineDevelopment, isMovieLicenseAvailable, runAwardCeremony, writerProjectLoad
 } from './simulation.js';
 import { seedState } from './seed.js';
 
@@ -19,6 +19,8 @@ export const FEATURE_AUDIT = [
   ['Transaction safety','Costly acquisitions and projects use confirm steps and rights lock after purchase'],
   ['Rolling script delivery','Episode scripts arrive progressively and can feed production before the full season is written'],
   ['Season refinement','Completed season packages can spend seven days on an optional quality polish'],
+  ['Production quality tiers','Normal/Premium/Elite define writer teams, script ceilings, casting scope and budget expectations'],
+  ['Writer capacity','Each writer can work on at most two simultaneous active writing projects'],
   ['Launch-date planning','Scheduling is locked until an initial air date is committed; prelaunch has no broadcast revenue/ops'],
   ['Unified pre-production','Greenlight/budget → production plan → casting → promotion → finalize'],
   ['Individual typed stages','Small, Regular, Large and Exterior stages are exclusive production assets'],
@@ -35,6 +37,7 @@ export const FEATURE_AUDIT = [
   ['Network rankings','Yesterday, current month and current year plus prestige/revenue ranking'],
   ['Program rankings','Current-year filters by format, slot and audience/viewer/critic score'],
   ['Historical records','Top-10 audience/viewer/critic record books archived at year end'],
+  ['Annual awards','Incremental Local, State and National award ceremonies with national craft/format categories'],
   ['Program profiles','Overview, episode audience/scores, IP identity and finance'],
   ['People profiles','Skills, specialties, project history, salary and contract detail'],
   ['Agency advertising','Base ad revenue requires an ad-sales agency contract'],
@@ -48,7 +51,7 @@ const okRange=(v,a=0,b=100)=>Number.isFinite(v)&&v>=a&&v<=b;
 
 export function runStateQA(s){
   const r=[],check=(name,ok,detail='')=>r.push({name,ok:!!ok,detail});
-  check('Version is v0.5',s.version==='0.5.0',s.version);
+  check('Version is v0.6',s.version==='0.6.0',s.version);
   check('Starting cash numeric',Number.isFinite(s.cash),String(s.cash));
   check('50 states represented',s.states.length===50,`${s.states.length}`);
   check('State areas exist',s.states.every(x=>Array.isArray(x.areas)&&x.areas.length>=1));
@@ -56,6 +59,9 @@ export function runStateQA(s){
   check('Reach nonnegative',Number.isFinite(networkReachHouseholds(s))&&networkReachHouseholds(s)>=0);
   check('Seven content formats',Object.keys(FORMATS).length===7,Object.keys(FORMATS).join(', '));
   check('Sports subformats complete',['Live Sports','Sports News','Pregame','Postgame','Sports Talk','Highlights','Analysis'].every(x=>FORMATS.Sports.includes(x)));
+  check('Daily live/news formats',FORMATS.Live.includes('Daily Live Show')&&FORMATS.News.includes('Daily News'));
+  check('Quality tiers configured',QUALITY_TIERS.normal.writers===1&&QUALITY_TIERS.premium.writers===2&&QUALITY_TIERS.elite.writers===3&&QUALITY_TIERS.normal.maxStars===2.5&&QUALITY_TIERS.elite.minStars===4);
+  check('Awards configured',(s.awards||[]).map(x=>x.scope).join(',')==='Local,State,National');
   check('Format expertise configured',FORMAT_EXPERTISE.every(f=>okRange(s.network.expertise?.[f],0,10)));
   check('Original duration options 30/60/120',DURATION_OPTIONS.join(',')==='30,60,120',DURATION_OPTIONS.join(','));
   check('Schedule starts valid',DAYS.every(d=>(s.scheduleBlocks[d]||[]).every(b=>BROADCAST_SLOTS.includes(b.start))));
@@ -114,9 +120,11 @@ export function runScenarioQA(){
   s=forceRecruit(s,'Chief Innovation Officer');check('CIO can be recruited',s.employees.some(e=>e.role==='Chief Innovation Officer'));
   s=startResearch(s,'t_4k');check('CIO unlocks research',!!s.research);
   const writer=s.employees.find(e=>e.role==='Writer');
-  s=commissionScript(s,{title:'QA Tonight',format:'Live',genre:'Talk Show',theme:'Contemporary',angle:'Fresh',episodes:8,duration:30,writerId:writer?.id});
+  s=commissionScript(s,{title:'QA Tonight',format:'Live',genre:'Talk Show',theme:'Contemporary',angle:'Fresh',episodes:8,duration:30,qualityTier:'normal',writerIds:[writer?.id],writerId:writer?.id});
+  const beforeSecond=s.developments.length;s=commissionScript(s,{title:'QA Second',format:'News',genre:'Daily News',theme:'Local',angle:'Familiar',episodes:6,duration:30,qualityTier:'normal',writerIds:[writer?.id],writerId:writer?.id});const afterSecond=s.developments.length;s=commissionScript(s,{title:'QA Third',format:'Live',genre:'Daily Live Show',theme:'Local',angle:'Familiar',episodes:6,duration:30,qualityTier:'normal',writerIds:[writer?.id],writerId:writer?.id});
+  check('Writer accepts second simultaneous project',afterSecond===beforeSecond+1,`${beforeSecond}→${afterSecond}`);check('Writer blocks third simultaneous project',s.developments.length===afterSecond,`load ${writerProjectLoad(s,writer.id)}`);
   let d=s.developments.find(x=>x.title==='QA Tonight'),interval=d?.episodeInterval||1;s=advanceDays(s,interval+1);d=s.developments.find(x=>x.title==='QA Tonight');
-  check('Scripts arrive progressively',(d?.scriptedEpisodes||0)>=1&&(d?.scriptedEpisodes||0)<d.episodes,`${d?.scriptedEpisodes}/${d?.episodes}`);
+  check('Scripts arrive progressively',(d?.scriptedEpisodes||0)>=1&&(d?.scriptedEpisodes||0)<d.episodes,`${d?.scriptedEpisodes}/${d?.episodes}`);check('Normal script ceiling enforced',(d?.scriptStars||0)<=2.5,`${d?.scriptStars}`);
   const sr=s.employees.find(e=>e.role==='Showrunner'),dir=s.employees.find(e=>e.role==='Director'),host=s.employees.find(e=>e.role==='Host');
   s=greenlightDevelopment(s,d.id,{budgetPerEpisode:d.suggestedBudgetPerEpisode});let p=s.programs.find(x=>x.developmentId===d.id);check('Greenlight allowed after first script',!!p&&p.pipeline.scripted>=1,`${p?.pipeline.scripted||0}`);
   s=startStageBuild(s,'small');s=advanceDays(s,40);check('Typed stage construction completes',s.stages.some(x=>x.type==='small'),s.stages.map(x=>x.type).join(','));
@@ -129,7 +137,7 @@ export function runScenarioQA(){
   s=setNetworkLaunchDate(s,s.date);check('Launch date can be committed',!!s.network.launchDate,s.network.launchDate);
   p=s.programs.find(x=>x.id===p.id);if((p.pipeline.ready||0)<1)s=advanceDays(s,45);p=s.programs.find(x=>x.id===p.id);const today=DAYS[(new Date(s.date+'T00:00:00').getDay()+6)%7];s=scheduleRecurring(s,{programId:p.id,start:'20:00',recurrence:'weekly',primaryDay:today,weeks:3});check('Recurring schedule rule created',s.scheduleRules.length===1);
   s=signAdAgency(s,s.agencies[3].id);check('Advertising agency contract signs',!!s.adAgencyContract);
-  s=advanceDays(s,10);check('15 rivals generate scoped ratings',s.competitorRatings.length>0&&s.competitorRatings.every(x=>Number.isFinite(x.stateAudience)&&Number.isFinite(x.localAudience)));
+  s=advanceDays(s,10);const scheduledRule=s.scheduleRules[0];check('Schedule rule retains exact start date',!!scheduledRule?.startDate,scheduledRule?.startDate||'');s=runAwardCeremony(s,'Local');check('Local awards can resolve from annual ratings',(s.awardHistory||[]).some(x=>x.scope==='Local'));check('15 rivals generate scoped ratings',s.competitorRatings.length>0&&s.competitorRatings.every(x=>Number.isFinite(x.stateAudience)&&Number.isFinite(x.localAudience)));
   const ranks=audienceRankings(s,'yesterday','national');check('Network rankings return 16 networks',ranks.length===16);check('Audience ranking has total + average',ranks.every(x=>Number.isFinite(x.totalAudience)&&Number.isFinite(x.audience)));
   check('Current-year program rankings include total + average',currentProgramRankings(s,{scope:'local'}).every(x=>Number.isFinite(x.audience)&&Number.isFinite(x.totalAudience)));
   check('Historical record query works',Array.isArray(historicalRecords(s,{format:'all',metric:'audience'})));

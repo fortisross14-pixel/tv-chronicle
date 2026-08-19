@@ -37,6 +37,11 @@ check('Touch manipulation enabled',css.includes('touch-action:manipulation')||cs
 check('Bottom navigation retained',css.includes('.bottom-nav'));
 check('Recurrence UI present',channel.includes('as long as')||channel.includes('As long as'));
 check('Audience competition tabs present',channel.includes('Audience')&&channel.includes('Records')&&channel.includes('Programs'));
+check('Awards UI present',channel.includes('Television Honors')&&channel.includes("['National','Dec 20'"));
+check('Dated calendar booking present',channel.includes('dated-day-switch')&&channel.includes('Choose Programming')&&channel.includes('startDate'));
+check('People Hiring/Staff subtabs present',org.includes('Hiring & Negotiations')&&org.includes('Current Staff'));
+check('Facilities Existing/Build subtabs present',org.includes('Existing & In Use')&&org.includes('Build New'));
+check('Negotiation latest offer visible',org.includes('Your latest offer')&&org.includes('Negotiation History'));
 check('State expansion drawer present',org.includes('All-state')||org.includes('All-State')||org.includes('All State'));
 check('Negotiation offer UI present',org.includes('market average')||org.includes('Market average'));
 check('Agency advertising UI present',business.includes('Advertising')&&business.includes('agency'));
@@ -45,7 +50,11 @@ check('Inbox signing actions present',dash.includes('Sign Person')&&dash.include
 check('v0.5 IndexedDB storage module',fs.existsSync(path.join(root,'src','game','storage.js'))&&read('src/game/storage.js').includes('indexedDB'));
 check('Launch-date gate present',channel.includes('Commit Launch Date'));
 check('Premiere reveal present',dash.includes('Check Premiere Results'));
-check('Pre-production wizard present',read('src/screens/Studio.jsx').includes('Finalize Pre-production'));
+const studio=read('src/screens/Studio.jsx');
+check('Pre-production wizard present',studio.includes('Finalize Pre-production'));
+check('Quality tier UI present',studio.includes('Normal')&&studio.includes('Premium')&&studio.includes('Elite')&&studio.includes('writerProjectLoad'));
+check('Distinct quadrant visual themes',css.includes('.page-studio')&&css.includes('.page-channel')&&css.includes('.page-business')&&css.includes('.page-organization'));
+check('Expanded subtype poster art',read('src/components/UI.jsx').includes('poster-space')&&read('src/components/UI.jsx').includes('poster-quiz')&&read('src/components/UI.jsx').includes('poster-medical'));
 check('Acquisition confirmations present',business.includes('ConfirmButton'));
 const importAuditErrors=relativeImportExportAudit();
 check('Relative named imports match exports',importAuditErrors.length===0,importAuditErrors.join('; '));
